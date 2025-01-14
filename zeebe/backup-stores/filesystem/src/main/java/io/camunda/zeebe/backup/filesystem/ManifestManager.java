@@ -22,13 +22,19 @@ import io.camunda.zeebe.backup.common.Manifest.InProgressManifest;
 import io.camunda.zeebe.backup.common.Manifest.StatusCode;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ManifestManager {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ManifestManager.class);
 
   /**
    * The path format consists of the following elements:
@@ -63,11 +69,10 @@ public final class ManifestManager {
     final byte[] serializedManifest;
     try {
       final var path = manifestPath(manifest);
-      Files.createDirectories(Path.of(path.substring(0, path.length() - 13)));
-      System.out.println(Path.of(path).toAbsolutePath());
+      Files.createDirectories(path.getParent());
 
       serializedManifest = MAPPER.writeValueAsBytes(manifest);
-      Files.write(Path.of(path), serializedManifest, StandardOpenOption.CREATE_NEW);
+      Files.write(path, serializedManifest, StandardOpenOption.CREATE_NEW);
 
       return manifest;
     } catch (final IOException e) {
@@ -91,7 +96,7 @@ public final class ManifestManager {
       }
       final var path = manifestPath(inProgressManifest);
 
-      Files.write(Path.of(path), serializedManifest, StandardOpenOption.CREATE);
+      Files.write(path, serializedManifest, StandardOpenOption.CREATE);
     } catch (final IOException e) {
       throw new RuntimeException(e);
     }
@@ -114,7 +119,7 @@ public final class ManifestManager {
       try {
         final var serializedManifest = MAPPER.writeValueAsBytes(manifest);
         final var path = manifestPath(manifest);
-        Files.write(Path.of(path), serializedManifest, StandardOpenOption.CREATE);
+        Files.write(path, serializedManifest, StandardOpenOption.CREATE);
       } catch (final IOException e) {
         throw new RuntimeException(e);
       }
@@ -133,7 +138,7 @@ public final class ManifestManager {
 
     try {
       final var path = manifestPath(manifest);
-      Files.delete(Path.of(path));
+      Files.delete(path);
     } catch (final IOException e) {
       throw new RuntimeException(e);
     }
@@ -164,18 +169,25 @@ public final class ManifestManager {
           .filter(filePath -> filterBlobsByWildcard(wildcard, filePath.toString()))
           .map(this::getManifestWithPath)
           .toList();
+    } catch (final NoSuchFileException e) {
+      return List.of();
     } catch (final IOException e) {
-      throw new RuntimeException(e);
+      LOG.error("Failed to read manifests", e);
+      return List.of();
     }
   }
 
-  public String manifestPath(final Manifest manifest) {
+  public Path manifestPath(final Manifest manifest) {
     return manifestIdPath(manifest.id());
   }
 
-  private String manifestIdPath(final BackupIdentifier backupIdentifier) {
-    return MANIFEST_PATH_FORMAT.formatted(basePath,
-        backupIdentifier.partitionId(), backupIdentifier.checkpointId(), backupIdentifier.nodeId());
+  private Path manifestIdPath(final BackupIdentifier backupIdentifier) {
+    return Path.of(MANIFEST_PATH_FORMAT.formatted(
+        basePath,
+        backupIdentifier.partitionId(),
+        backupIdentifier.checkpointId(),
+        backupIdentifier.nodeId()
+    ));
   }
 
   private boolean filterBlobsByWildcard(
