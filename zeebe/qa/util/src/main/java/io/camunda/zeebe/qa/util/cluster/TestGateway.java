@@ -98,7 +98,7 @@ public interface TestGateway<T extends TestGateway<T>> extends TestApplication<T
     final var security = gatewayConfig().getSecurity();
     final var restSSL = property("server.ssl.enabled", Boolean.class, false);
     if (security.isEnabled() || restSSL) {
-      builder.caCertificatePath(security.getCertificateChainPath().getAbsolutePath());
+      builder.caCertificatePath(security.getCertificateChainPath().toAbsolutePath().toString());
     } else {
       builder.usePlaintext();
     }

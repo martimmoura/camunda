@@ -23,18 +23,17 @@ import io.camunda.zeebe.broker.client.api.BrokerClient;
 import io.camunda.zeebe.gateway.impl.SpringGatewayBridge;
 import io.camunda.zeebe.gateway.impl.configuration.ClusterCfg;
 import io.camunda.zeebe.gateway.impl.configuration.NetworkCfg;
-import io.camunda.zeebe.gateway.impl.configuration.SecurityCfg;
 import io.camunda.zeebe.gateway.impl.stream.JobStreamClient;
 import io.camunda.zeebe.scheduler.ActorScheduler;
 import io.camunda.zeebe.test.util.asserts.SslAssert;
 import io.camunda.zeebe.test.util.socket.SocketUtil;
+import io.camunda.zeebe.util.ssl.SslConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import org.agrona.CloseHelper;
@@ -106,7 +105,7 @@ final class StandaloneGatewaySecurityTest {
   void shouldNotStartWithTlsEnabledAndWrongCert() {
     // given
     final var cfg = createGatewayCfg();
-    cfg.getCluster().getSecurity().setCertificateChainPath(new File("/tmp/i-dont-exist.crt"));
+    cfg.getCluster().getSecurity().setCertificateChainPath(Path.of("/tmp/i-dont-exist.crt"));
 
     // when - then
     assertThatCode(() -> buildGateway(cfg))
@@ -119,7 +118,7 @@ final class StandaloneGatewaySecurityTest {
   void shouldNotStartWithTlsEnabledAndWrongKey() {
     // given
     final var cfg = createGatewayCfg();
-    cfg.getCluster().getSecurity().setPrivateKeyPath(new File("/tmp/i-dont-exist.key"));
+    cfg.getCluster().getSecurity().setPrivateKeyPath(Path.of("/tmp/i-dont-exist.key"));
 
     // when - then
     assertThatCode(() -> buildGateway(cfg))
@@ -154,16 +153,16 @@ final class StandaloneGatewaySecurityTest {
             "Expected a certificate chain in order to enable inter-cluster communication security, but none given");
   }
 
-  private File createPKCS12File() {
+  private Path createPKCS12File() {
     try {
       final var store = KeyStore.getInstance("PKCS12");
       final var chain = new Certificate[] {certificate.cert()};
-      final var file = Files.createTempFile("id", ".p12").toFile();
+      final var file = Files.createTempFile("id", ".p12");
 
       store.load(null, null);
       store.setKeyEntry("key", certificate.key(), "password".toCharArray(), chain);
 
-      try (final var fOut = new FileOutputStream(file)) {
+      try (final var fOut = Files.newOutputStream(file)) {
         store.store(fOut, "password".toCharArray());
       }
 
@@ -184,10 +183,10 @@ final class StandaloneGatewaySecurityTest {
             .setHost(clusterAddress.getHostName())
             .setPort(clusterAddress.getPort())
             .setSecurity(
-                new SecurityCfg()
+                new SslConfig()
                     .setEnabled(true)
-                    .setCertificateChainPath(certificate.certificate())
-                    .setPrivateKeyPath(certificate.privateKey())));
+                    .setCertificateChainPath(certificate.certificate().toPath())
+                    .setPrivateKeyPath(certificate.privateKey().toPath())));
     return config;
   }
 

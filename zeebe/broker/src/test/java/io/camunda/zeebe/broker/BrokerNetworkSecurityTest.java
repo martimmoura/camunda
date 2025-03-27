@@ -11,6 +11,7 @@ import io.camunda.zeebe.broker.system.configuration.BrokerCfg;
 import io.camunda.zeebe.broker.system.configuration.SecurityCfg;
 import io.camunda.zeebe.broker.test.EmbeddedBrokerRule;
 import io.camunda.zeebe.test.util.asserts.SslAssert;
+import io.camunda.zeebe.util.ssl.SslConfig;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.net.SocketAddress;
 import java.security.cert.CertificateException;
@@ -65,11 +66,10 @@ public final class BrokerNetworkSecurityTest {
     private void configureBroker(final BrokerCfg config) {
       config
           .getNetwork()
-          .setSecurity(
-              new SecurityCfg()
-                  .setEnabled(true)
-                  .setCertificateChainPath(certificate.certificate())
-                  .setPrivateKeyPath(certificate.privateKey()));
+          .getSecurity()
+          .setEnabled(true)
+          .setCertificateChainPath(certificate.certificate().toPath())
+          .setPrivateKeyPath(certificate.privateKey().toPath());
     }
   }
 }

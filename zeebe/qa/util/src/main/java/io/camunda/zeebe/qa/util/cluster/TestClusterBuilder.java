@@ -274,6 +274,8 @@ public final class TestClusterBuilder {
     // is one
     createGateways();
 
+    // apply cluster configurat
+
     return new TestCluster(
         name, replicationFactor, partitionsCount, new HashMap<>(brokers), new HashMap<>(gateways));
   }

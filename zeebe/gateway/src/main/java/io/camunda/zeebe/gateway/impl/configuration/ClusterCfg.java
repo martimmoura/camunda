@@ -19,6 +19,7 @@ import static io.camunda.zeebe.util.StringUtil.LIST_SANITIZER;
 
 import io.atomix.cluster.messaging.MessagingConfig.CompressionAlgorithm;
 import io.atomix.utils.net.Address;
+import io.camunda.zeebe.util.ssl.SslConfig;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +41,7 @@ public final class ClusterCfg {
   private int port = DEFAULT_CLUSTER_PORT;
   private Integer advertisedPort = null;
   private MembershipCfg membership = new MembershipCfg();
-  private SecurityCfg security = new SecurityCfg();
+  private SslConfig security = new SslConfig();
   private CompressionAlgorithm messageCompression = CompressionAlgorithm.NONE;
   private ConfigManagerCfg configManager = ConfigManagerCfg.defaultConfig();
 
@@ -131,11 +132,11 @@ public final class ClusterCfg {
     this.membership = membership;
   }
 
-  public SecurityCfg getSecurity() {
+  public SslConfig getSecurity() {
     return security;
   }
 
-  public ClusterCfg setSecurity(final SecurityCfg security) {
+  public ClusterCfg setSecurity(final SslConfig security) {
     this.security = security;
     return this;
   }

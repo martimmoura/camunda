@@ -7,6 +7,8 @@
  */
 package io.camunda.zeebe.exporter;
 
+import io.camunda.zeebe.util.ssl.SslContextBuilders;
+import javax.net.ssl.SSLContext;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.auth.AuthScope;
@@ -65,7 +67,19 @@ final class RestClientFactory {
       builder.addInterceptorLast(interceptor);
     }
 
+    if (config.security.isEnabled()) {
+      builder.setSSLContext(buildSslContext(config));
+    }
+
     return builder;
+  }
+
+  private SSLContext buildSslContext(final ElasticsearchExporterConfiguration config) {
+    try {
+      return SslContextBuilders.apacheClientContextBuilder(config.security).build();
+    } catch (final Exception e) {
+      throw new IllegalStateException("Failed to configure SSL trust manager for the exporter", e);
+    }
   }
 
   private void setupBasicAuthentication(

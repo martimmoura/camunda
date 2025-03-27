@@ -7,6 +7,7 @@
  */
 package io.camunda.zeebe.gateway.impl.configuration;
 
+import io.camunda.zeebe.util.ssl.SslConfig;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +17,7 @@ public class GatewayCfg {
   private NetworkCfg network = new NetworkCfg();
   private ClusterCfg cluster = new ClusterCfg();
   private ThreadsCfg threads = new ThreadsCfg();
-  private SecurityCfg security = new SecurityCfg();
+  private SslConfig security = new SslConfig();
   private LongPollingCfg longPolling = new LongPollingCfg();
   private List<InterceptorCfg> interceptors = new ArrayList<>();
   private List<FilterCfg> filters = new ArrayList<>();
@@ -56,11 +57,11 @@ public class GatewayCfg {
     return this;
   }
 
-  public SecurityCfg getSecurity() {
+  public SslConfig getSecurity() {
     return security;
   }
 
-  public GatewayCfg setSecurity(final SecurityCfg security) {
+  public GatewayCfg setSecurity(final SslConfig security) {
     this.security = security;
     return this;
   }

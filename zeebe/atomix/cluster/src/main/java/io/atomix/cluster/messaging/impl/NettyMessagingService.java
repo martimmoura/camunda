@@ -29,8 +29,8 @@ import io.atomix.cluster.messaging.MessagingService;
 import io.atomix.utils.concurrent.OrderedFuture;
 import io.atomix.utils.net.Address;
 import io.camunda.zeebe.util.StringUtil;
-import io.camunda.zeebe.util.TlsConfigUtil;
 import io.camunda.zeebe.util.VisibleForTesting;
+import io.camunda.zeebe.util.ssl.SslContextBuilders;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
@@ -513,18 +513,14 @@ public final class NettyMessagingService implements ManagedMessagingService {
   }
 
   private CompletableFuture<Void> loadClientSslContext() {
+    final var security = config.getSecurity();
+
     try {
-
-      final var sslContextBuilder = SslContextBuilder.forClient();
-
-      if (config.getKeyStore() != null) {
-        sslContextBuilder.trustManager(
-            TlsConfigUtil.getCertificateChain(config.getKeyStore(), config.getKeyStorePassword()));
-      } else {
-        sslContextBuilder.trustManager(config.getCertificateChain());
-      }
       clientSslContext =
-          sslContextBuilder.sslProvider(SslProvider.OPENSSL_REFCNT).protocols(TLS_PROTOCOL).build();
+          SslContextBuilders.nettyClientContextBuilder(security)
+              .sslProvider(SslProvider.OPENSSL_REFCNT)
+              .protocols(TLS_PROTOCOL)
+              .build();
       return CompletableFuture.completedFuture(null);
     } catch (final Exception e) {
       return CompletableFuture.failedFuture(
@@ -534,22 +530,15 @@ public final class NettyMessagingService implements ManagedMessagingService {
   }
 
   private CompletableFuture<Void> loadServerSslContext() {
+    final var security = config.getSecurity();
+    security.validate();
+
     try {
-      final SslContextBuilder sslContextBuilder;
-
-      if (config.getKeyStore() != null) {
-        final var privateKey =
-            TlsConfigUtil.getPrivateKey(config.getKeyStore(), config.getKeyStorePassword());
-        final var certChain =
-            TlsConfigUtil.getCertificateChain(config.getKeyStore(), config.getKeyStorePassword());
-
-        sslContextBuilder = SslContextBuilder.forServer(privateKey, certChain);
-      } else {
-        sslContextBuilder =
-            SslContextBuilder.forServer(config.getCertificateChain(), config.getPrivateKey());
-      }
       serverSslContext =
-          sslContextBuilder.sslProvider(SslProvider.OPENSSL_REFCNT).protocols(TLS_PROTOCOL).build();
+          SslContextBuilders.nettyServerContextBuilder(security)
+              .sslProvider(SslProvider.OPENSSL_REFCNT)
+              .protocols(TLS_PROTOCOL)
+              .build();
       return CompletableFuture.completedFuture(null);
     } catch (final Exception e) {
       return CompletableFuture.failedFuture(

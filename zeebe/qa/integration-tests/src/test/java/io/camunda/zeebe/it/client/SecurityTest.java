@@ -18,6 +18,7 @@ import io.camunda.zeebe.qa.util.junit.ZeebeIntegration;
 import io.camunda.zeebe.qa.util.junit.ZeebeIntegration.TestZeebe;
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -118,8 +119,8 @@ public final class SecurityTest {
         .gatewayConfig()
         .getSecurity()
         .setEnabled(true)
-        .setCertificateChainPath(new File(certificatePath))
-        .setPrivateKeyPath(new File(privateKeyPath));
+        .setCertificateChainPath(Path.of(certificatePath))
+        .setPrivateKeyPath(Path.of(privateKeyPath));
 
     // configure the REST API server for TLS/SSL
     gateway

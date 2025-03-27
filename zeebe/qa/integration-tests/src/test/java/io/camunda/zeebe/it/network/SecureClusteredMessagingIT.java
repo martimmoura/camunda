@@ -139,25 +139,28 @@ final class SecureClusteredMessagingIT {
 
   private static void configureCertChainGateway(final GatewayCfg gatewayConfig) {
     gatewayConfig.getCluster().getSecurity().setEnabled(true);
-    gatewayConfig.getCluster().getSecurity().setCertificateChainPath(CERTIFICATE.certificate());
-    gatewayConfig.getCluster().getSecurity().setPrivateKeyPath(CERTIFICATE.privateKey());
+    gatewayConfig
+        .getCluster()
+        .getSecurity()
+        .setCertificateChainPath(CERTIFICATE.certificate().toPath());
+    gatewayConfig.getCluster().getSecurity().setPrivateKeyPath(CERTIFICATE.privateKey().toPath());
   }
 
   private static void configureCertChainBroker(final BrokerCfg config) {
     config.getNetwork().getSecurity().setEnabled(true);
-    config.getNetwork().getSecurity().setCertificateChainPath(CERTIFICATE.certificate());
-    config.getNetwork().getSecurity().setPrivateKeyPath(CERTIFICATE.privateKey());
+    config.getNetwork().getSecurity().setCertificateChainPath(CERTIFICATE.certificate().toPath());
+    config.getNetwork().getSecurity().setPrivateKeyPath(CERTIFICATE.privateKey().toPath());
   }
 
   private static void configureKeyStoreGateway(final GatewayCfg config, final File pkcs12) {
     config.getCluster().getSecurity().setEnabled(true);
-    config.getCluster().getSecurity().getKeyStore().setFilePath(pkcs12);
+    config.getCluster().getSecurity().getKeyStore().setFilePath(pkcs12.toPath());
     config.getCluster().getSecurity().getKeyStore().setPassword("password");
   }
 
   private static void configureKeyStoreBroker(final BrokerCfg config, final File pkcs12) {
     config.getNetwork().getSecurity().setEnabled(true);
-    config.getNetwork().getSecurity().getKeyStore().setFilePath(pkcs12);
+    config.getNetwork().getSecurity().getKeyStore().setFilePath(pkcs12.toPath());
     config.getNetwork().getSecurity().getKeyStore().setPassword("password");
   }
 

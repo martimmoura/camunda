@@ -22,18 +22,18 @@ import io.camunda.zeebe.broker.client.impl.BrokerTopologyManagerImpl;
 import io.camunda.zeebe.gateway.Gateway;
 import io.camunda.zeebe.gateway.impl.configuration.GatewayCfg;
 import io.camunda.zeebe.gateway.impl.configuration.NetworkCfg;
-import io.camunda.zeebe.gateway.impl.configuration.SecurityCfg;
 import io.camunda.zeebe.gateway.impl.stream.JobStreamClient;
 import io.camunda.zeebe.gateway.impl.stream.JobStreamClientImpl;
 import io.camunda.zeebe.scheduler.ActorScheduler;
 import io.camunda.zeebe.scheduler.future.ActorFuture;
 import io.camunda.zeebe.test.util.asserts.SslAssert;
 import io.camunda.zeebe.test.util.socket.SocketUtil;
+import io.camunda.zeebe.util.ssl.SslConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import org.agrona.CloseHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.AutoClose;
@@ -85,7 +85,7 @@ final class SecurityTest {
   void shouldNotStartWithTlsEnabledAndWrongCert() {
     // given
     final GatewayCfg cfg = createGatewayCfg();
-    cfg.getSecurity().setCertificateChainPath(new File("/tmp/i-dont-exist.crt"));
+    cfg.getSecurity().setCertificateChainPath(Path.of("/tmp/i-dont-exist.crt"));
 
     // when
     gateway = buildGateway(cfg);
@@ -103,7 +103,7 @@ final class SecurityTest {
   void shouldNotStartWithTlsEnabledAndWrongKey() {
     // given
     final GatewayCfg cfg = createGatewayCfg();
-    cfg.getSecurity().setPrivateKeyPath(new File("/tmp/i-dont-exist.key"));
+    cfg.getSecurity().setPrivateKeyPath(Path.of("/tmp/i-dont-exist.key"));
 
     // when
     gateway = buildGateway(cfg);
@@ -157,10 +157,10 @@ final class SecurityTest {
                 .setHost(gatewayAddress.getHostName())
                 .setPort(gatewayAddress.getPort()))
         .setSecurity(
-            new SecurityCfg()
+            new SslConfig()
                 .setEnabled(true)
-                .setCertificateChainPath(certificate.certificate())
-                .setPrivateKeyPath(certificate.privateKey()));
+                .setCertificateChainPath(certificate.certificate().toPath())
+                .setPrivateKeyPath(certificate.privateKey().toPath()));
   }
 
   private Gateway buildGateway(final GatewayCfg gatewayCfg) {

@@ -16,6 +16,7 @@ import io.camunda.zeebe.util.Environment;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -52,8 +53,8 @@ public final class GatewayCfgTest {
     CUSTOM_CFG
         .getSecurity()
         .setEnabled(true)
-        .setCertificateChainPath(new File("certificateChainPath"))
-        .setPrivateKeyPath(new File("privateKeyPath"));
+        .setCertificateChainPath(Path.of("certificateChainPath"))
+        .setPrivateKeyPath(Path.of("privateKeyPath"));
     CUSTOM_CFG.getThreads().setManagementThreads(100);
     CUSTOM_CFG.getLongPolling().setEnabled(false);
     CUSTOM_CFG.getInterceptors().add(new InterceptorCfg());
@@ -204,10 +205,10 @@ public final class GatewayCfgTest {
         .getSecurity()
         .setEnabled(false)
         .setPrivateKeyPath(
-            new File(
+            Path.of(
                 getClass().getClassLoader().getResource("security/test-server.key.pem").getPath()))
         .setCertificateChainPath(
-            new File(
+            Path.of(
                 getClass().getClassLoader().getResource("security/test-chain.cert.pem").getPath()));
     expected.getLongPolling().setEnabled(true);
 

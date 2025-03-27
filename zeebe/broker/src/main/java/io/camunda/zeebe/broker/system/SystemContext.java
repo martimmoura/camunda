@@ -26,7 +26,6 @@ import io.camunda.zeebe.broker.system.configuration.DataCfg;
 import io.camunda.zeebe.broker.system.configuration.DiskCfg.FreeSpaceCfg;
 import io.camunda.zeebe.broker.system.configuration.ExperimentalCfg;
 import io.camunda.zeebe.broker.system.configuration.ExporterCfg;
-import io.camunda.zeebe.broker.system.configuration.SecurityCfg;
 import io.camunda.zeebe.broker.system.configuration.backup.AzureBackupStoreConfig;
 import io.camunda.zeebe.broker.system.configuration.backup.BackupStoreCfg;
 import io.camunda.zeebe.broker.system.configuration.backup.FilesystemBackupStoreConfig;
@@ -35,7 +34,6 @@ import io.camunda.zeebe.broker.system.configuration.backup.S3BackupStoreConfig;
 import io.camunda.zeebe.broker.system.configuration.partitioning.FixedPartitionCfg;
 import io.camunda.zeebe.broker.system.configuration.partitioning.Scheme;
 import io.camunda.zeebe.scheduler.ActorScheduler;
-import io.camunda.zeebe.util.TlsConfigUtil;
 import io.camunda.zeebe.util.VisibleForTesting;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -149,7 +147,7 @@ public final class SystemContext {
 
     final var security = brokerCfg.getNetwork().getSecurity();
     if (security.isEnabled()) {
-      validateNetworkSecurityConfig(security);
+      security.validate();
     }
   }
 
@@ -327,13 +325,6 @@ public final class SystemContext {
     }
 
     return members;
-  }
-
-  private void validateNetworkSecurityConfig(final SecurityCfg security) {
-    TlsConfigUtil.validateTlsConfig(
-        security.getCertificateChainPath(),
-        security.getPrivateKeyPath(),
-        security.getKeyStore().getFilePath());
   }
 
   public ActorScheduler getScheduler() {

@@ -145,24 +145,11 @@ public final class GatewayBasedConfiguration {
 
   private MessagingConfig messagingConfig(final GatewayCfg config) {
     final var cluster = config.getCluster();
-
-    final var messaging =
-        new MessagingConfig()
-            .setCompressionAlgorithm(cluster.getMessageCompression())
-            .setInterfaces(Collections.singletonList(cluster.getHost()))
-            .setPort(cluster.getPort());
-
-    final var security = cluster.getSecurity();
-    if (security.isEnabled()) {
-      messaging
-          .setTlsEnabled(true)
-          .configureTls(
-              security.getKeyStore().getFilePath(),
-              security.getKeyStore().getPassword(),
-              security.getPrivateKeyPath(),
-              security.getCertificateChainPath());
-    }
-    return messaging;
+    return new MessagingConfig()
+        .setCompressionAlgorithm(cluster.getMessageCompression())
+        .setInterfaces(Collections.singletonList(cluster.getHost()))
+        .setPort(cluster.getPort())
+        .setSecurity(cluster.getSecurity());
   }
 
   @ConfigurationProperties("zeebe.gateway")

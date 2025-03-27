@@ -11,6 +11,7 @@ import io.camunda.search.connect.plugin.PluginConfiguration;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
+import io.camunda.zeebe.util.ssl.SslConfig;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class ElasticsearchExporterConfiguration {
   public final RetentionConfiguration retention = new RetentionConfiguration();
   public final List<PluginConfiguration> interceptorPlugins = new ArrayList<>();
   private final AuthenticationConfiguration authentication = new AuthenticationConfiguration();
+  public final SslConfig security = new SslConfig();
 
   public boolean hasAuthenticationPresent() {
     return getAuthentication().isPresent();
@@ -60,6 +62,8 @@ public class ElasticsearchExporterConfiguration {
         + authentication
         + ", interceptors="
         + interceptorPlugins
+        + ", security="
+        + security
         + '}';
   }
 

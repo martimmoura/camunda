@@ -19,7 +19,6 @@ import io.camunda.zeebe.gateway.health.Status;
 import io.camunda.zeebe.gateway.health.impl.GatewayHealthManagerImpl;
 import io.camunda.zeebe.gateway.impl.configuration.GatewayCfg;
 import io.camunda.zeebe.gateway.impl.configuration.NetworkCfg;
-import io.camunda.zeebe.gateway.impl.configuration.SecurityCfg;
 import io.camunda.zeebe.gateway.impl.job.ActivateJobsHandler;
 import io.camunda.zeebe.gateway.impl.job.LongPollingActivateJobsHandler;
 import io.camunda.zeebe.gateway.impl.job.RoundRobinActivateJobsHandler;
@@ -40,9 +39,10 @@ import io.camunda.zeebe.scheduler.future.ActorFuture;
 import io.camunda.zeebe.scheduler.future.CompletableActorFuture;
 import io.camunda.zeebe.transport.stream.api.ClientStreamer;
 import io.camunda.zeebe.util.CloseableSilently;
-import io.camunda.zeebe.util.TlsConfigUtil;
 import io.camunda.zeebe.util.error.FatalErrorHandler;
 import io.camunda.zeebe.util.micrometer.MicrometerUtil;
+import io.camunda.zeebe.util.ssl.SslConfig;
+import io.camunda.zeebe.util.ssl.SslContextBuilders;
 import io.grpc.BindableService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -56,7 +56,6 @@ import io.grpc.protobuf.StatusProto;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.netty.channel.ChannelOption;
-import io.netty.handler.ssl.SslContextBuilder;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
@@ -240,9 +239,9 @@ public final class Gateway implements CloseableSilently {
   }
 
   private void applySecurityConfiguration(final NettyServerBuilder serverBuilder) {
-    final SecurityCfg securityCfg = gatewayCfg.getSecurity();
-    if (securityCfg.isEnabled()) {
-      setSecurityConfig(serverBuilder, securityCfg);
+    final var security = gatewayCfg.getSecurity();
+    if (security.isEnabled()) {
+      setSecurityConfig(serverBuilder, security);
     }
   }
 
@@ -282,25 +281,12 @@ public final class Gateway implements CloseableSilently {
         .withChildOption(ChannelOption.SO_SNDBUF, (int) cfg.getSocketSendBuffer().toBytes());
   }
 
-  private void setSecurityConfig(
-      final NettyServerBuilder serverBuilder, final SecurityCfg security) {
-    final var certificateChainPath = security.getCertificateChainPath();
-    final var privateKeyPath = security.getPrivateKeyPath();
-    final var keyStorePath = security.getKeyStore().getFilePath();
-    final var keyStorePassword = security.getKeyStore().getPassword();
-
-    TlsConfigUtil.validateTlsConfig(certificateChainPath, privateKeyPath, keyStorePath);
+  private void setSecurityConfig(final NettyServerBuilder serverBuilder, final SslConfig security) {
+    security.validate();
 
     try {
-      final SslContextBuilder sslContextBuilder;
-      if (keyStorePath != null) {
-        final var privateKey = TlsConfigUtil.getPrivateKey(keyStorePath, keyStorePassword);
-        final var certChain = TlsConfigUtil.getCertificateChain(keyStorePath, keyStorePassword);
-        sslContextBuilder = SslContextBuilder.forServer(privateKey, certChain);
-      } else {
-        sslContextBuilder = SslContextBuilder.forServer(certificateChainPath, privateKeyPath);
-      }
-      final var sslContext = GrpcSslContexts.configure(sslContextBuilder).build();
+      final var sslContext = GrpcSslContexts.configure(
+          SslContextBuilders.nettyServerContextBuilder(security)).build();
       serverBuilder.sslContext(sslContext);
     } catch (final Exception e) {
       throw new IllegalArgumentException(

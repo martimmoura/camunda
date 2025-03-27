@@ -7,96 +7,28 @@
  */
 package io.camunda.zeebe.broker.system.configuration;
 
-import java.io.File;
+import io.camunda.zeebe.util.ssl.SslConfig;
 import java.nio.file.Path;
-import java.util.Objects;
 
-public final class SecurityCfg implements ConfigurationEntry {
-  private static final boolean DEFAULT_ENABLED = false;
-
-  private boolean enabled = DEFAULT_ENABLED;
-  private File certificateChainPath;
-  private File privateKeyPath;
-  private final KeyStoreCfg keyStore = new KeyStoreCfg();
-
+public final class SecurityCfg extends SslConfig implements ConfigurationEntry {
   @Override
   public void init(final BrokerCfg globalConfig, final String brokerBase) {
     final var brokerBasePath = Path.of(brokerBase);
+
+    final var certificateChainPath = getCertificateChainPath();
     if (certificateChainPath != null) {
-      certificateChainPath = brokerBasePath.resolve(certificateChainPath.toPath()).toFile();
+      setCertificateChainPath(brokerBasePath.resolve(certificateChainPath));
     }
 
+    final var privateKeyPath = getPrivateKeyPath();
     if (privateKeyPath != null) {
-      privateKeyPath = brokerBasePath.resolve(privateKeyPath.toPath()).toFile();
+      setPrivateKeyPath(brokerBasePath.resolve(privateKeyPath));
     }
 
-    keyStore.init(globalConfig, brokerBase);
-  }
-
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  public SecurityCfg setEnabled(final boolean enabled) {
-    this.enabled = enabled;
-    return this;
-  }
-
-  public File getCertificateChainPath() {
-    return certificateChainPath;
-  }
-
-  public SecurityCfg setCertificateChainPath(final File certificateChainPath) {
-    this.certificateChainPath = certificateChainPath;
-    return this;
-  }
-
-  public File getPrivateKeyPath() {
-    return privateKeyPath;
-  }
-
-  public SecurityCfg setPrivateKeyPath(final File privateKeyPath) {
-    this.privateKeyPath = privateKeyPath;
-    return this;
-  }
-
-  public KeyStoreCfg getKeyStore() {
-    return keyStore;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(enabled, certificateChainPath, privateKeyPath, keyStore);
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
+    final var keyStore = getKeyStore();
+    final var keyStorePath = keyStore.getFilePath();
+    if (keyStorePath != null) {
+      keyStore.setFilePath(brokerBasePath.resolve(keyStorePath));
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    final var that = (SecurityCfg) o;
-    return enabled == that.enabled
-        && Objects.equals(certificateChainPath, that.certificateChainPath)
-        && Objects.equals(privateKeyPath, that.privateKeyPath)
-        && Objects.equals(keyStore, that.keyStore);
-  }
-
-  @Override
-  public String toString() {
-    return "SecurityCfg{"
-        + "enabled="
-        + enabled
-        + ", certificateChainPath='"
-        + certificateChainPath
-        + "'"
-        + ", privateKeyPath='"
-        + privateKeyPath
-        + ", keyStore="
-        + keyStore
-        + '}';
   }
 }

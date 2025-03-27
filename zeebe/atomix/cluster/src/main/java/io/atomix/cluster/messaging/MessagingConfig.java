@@ -17,28 +17,26 @@
 package io.atomix.cluster.messaging;
 
 import io.atomix.utils.config.Config;
-import java.io.File;
+import io.camunda.zeebe.util.ssl.SslConfig;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /** Messaging configuration. */
 public class MessagingConfig implements Config {
   private final int connectionPoolSize = 8;
+
   private List<String> interfaces = new ArrayList<>();
   private Integer port;
   private Duration shutdownQuietPeriod = Duration.ofMillis(20);
   private Duration shutdownTimeout = Duration.ofSeconds(1);
-  private boolean tlsEnabled = false;
-  private File certificateChain;
-  private File privateKey;
   private CompressionAlgorithm compressionAlgorithm = CompressionAlgorithm.NONE;
-  private File keyStore;
-  private String keyStorePassword;
   private int socketSendBuffer = 1024 * 1024;
   private int socketReceiveBuffer = 1024 * 1024;
   private Duration heartbeatTimeout = Duration.ofSeconds(15);
   private Duration heartbeatInterval = Duration.ofSeconds(5);
+  private SslConfig security = new SslConfig();
 
   /**
    * Returns the local interfaces to which to bind the node.
@@ -130,7 +128,7 @@ public class MessagingConfig implements Config {
    * @return true if TLS is enabled for inter-cluster communication
    */
   public boolean isTlsEnabled() {
-    return tlsEnabled;
+    return security.isEnabled();
   }
 
   /**
@@ -140,7 +138,7 @@ public class MessagingConfig implements Config {
    * @return this config for chaining
    */
   public MessagingConfig setTlsEnabled(final boolean tlsEnabled) {
-    this.tlsEnabled = tlsEnabled;
+    security.setEnabled(tlsEnabled);
     return this;
   }
 
@@ -153,105 +151,9 @@ public class MessagingConfig implements Config {
     return this;
   }
 
-  /**
-   * The certificate chain to use for inter-cluster communication. This certificate is used for both
-   * the server and the client.
-   *
-   * @return a file which contains the certificate chain
-   */
-  public File getCertificateChain() {
-    return certificateChain;
-  }
-
-  /**
-   * Sets the certificate chain to use for inter-cluster communication. If using a self-signed
-   * certificate, or one which is not widely trusted, this must be the complete chain.
-   *
-   * <p>Mandatory if TLS is enabled.
-   *
-   * @param certificateChain a file containing the certificate chain
-   * @return this config for chaining
-   * @throws IllegalArgumentException if the certificate chain is null
-   * @throws IllegalArgumentException if the certificate chain points to a file which does not exist
-   * @throws IllegalArgumentException if the certificate chain points to a file which cannot be read
-   */
-  public MessagingConfig setCertificateChain(final File certificateChain) {
-    if (certificateChain == null) {
-      throw new IllegalArgumentException(
-          "Expected a certificate chain in order to enable inter-cluster communication security, "
-              + "but none given");
-    }
-
-    if (!certificateChain.canRead()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Expected the node's inter-cluster communication certificate to be at %s, but either "
-                  + "the file is missing or it is not readable",
-              certificateChain));
-    }
-
-    this.certificateChain = certificateChain;
+  public MessagingConfig setSecurity(final SslConfig security) {
+    this.security = Objects.requireNonNull(security);
     return this;
-  }
-
-  /**
-   * @return the private key of the certificate chain
-   */
-  public File getPrivateKey() {
-    return privateKey;
-  }
-
-  /**
-   * Sets the private key of the certificate chain.
-   *
-   * <p>Mandatory if TLS is enabled.
-   *
-   * @param privateKey the private key of the associated certificate chain
-   * @return this config for chaining
-   * @throws IllegalArgumentException if the private key is null
-   * @throws IllegalArgumentException if the private key points to a file which does not exist
-   * @throws IllegalArgumentException if the private key points to a file which cannot be read
-   */
-  public MessagingConfig setPrivateKey(final File privateKey) {
-    if (privateKey == null) {
-      throw new IllegalArgumentException(
-          "Expected a private key in order to enable inter-cluster communication security, but none"
-              + " given");
-    }
-
-    if (!privateKey.canRead()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Expected the node's inter-cluster communication private key to be at %s, but either "
-                  + "the file is missing or it is not readable",
-              privateKey));
-    }
-
-    this.privateKey = privateKey;
-    return this;
-  }
-
-  public MessagingConfig configureTls(
-      final File keyStore,
-      final String keyStorePassword,
-      final File privateKey,
-      final File certificateChain) {
-    if (keyStore != null) {
-      this.keyStore = keyStore;
-      this.keyStorePassword = keyStorePassword;
-    } else {
-      setPrivateKey(privateKey);
-      setCertificateChain(certificateChain);
-    }
-    return this;
-  }
-
-  public File getKeyStore() {
-    return keyStore;
-  }
-
-  public String getKeyStorePassword() {
-    return keyStorePassword;
   }
 
   /**
@@ -306,6 +208,10 @@ public class MessagingConfig implements Config {
   public MessagingConfig setHeartbeatInterval(final Duration heartbeatInterval) {
     this.heartbeatInterval = heartbeatInterval;
     return this;
+  }
+
+  public SslConfig getSecurity() {
+    return security;
   }
 
   public enum CompressionAlgorithm {
