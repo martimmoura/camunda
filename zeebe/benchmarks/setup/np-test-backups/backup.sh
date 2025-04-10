@@ -57,4 +57,7 @@ until [ "$(curl ${curlOptions} "http://np-test-backups-zeebe-gateway:9600/actuat
 done
 echo "Zeebe backup completed!"
 
+curl ${curlOptions} -XPOST 'http://np-test-backups-zeebe-gateway:9600/actuator/exporting/resume'
+echo "Resumed Zeebe export"
+
 echo "Camunda 8 backup [${backupId}] completed!"
