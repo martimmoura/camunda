@@ -15,7 +15,9 @@
  */
 package io.camunda.zeebe.protocol.record.value;
 
-public interface BatchOperationRelated {
+import io.camunda.zeebe.protocol.record.RecordValue;
+
+public interface BatchOperationRelated extends RecordValue {
 
   /**
    * @return the key of the batch operation aka operation reference key

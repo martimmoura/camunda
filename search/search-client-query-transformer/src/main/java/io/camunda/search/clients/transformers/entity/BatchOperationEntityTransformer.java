@@ -10,7 +10,6 @@ package io.camunda.search.clients.transformers.entity;
 import io.camunda.search.clients.transformers.ServiceTransformer;
 import io.camunda.search.entities.BatchOperationEntity;
 import io.camunda.search.entities.BatchOperationEntity.BatchOperationState;
-import org.apache.commons.lang3.StringUtils;
 
 public class BatchOperationEntityTransformer
     implements ServiceTransformer<
@@ -35,7 +34,7 @@ public class BatchOperationEntityTransformer
    */
   private static boolean isLegacy(
       final io.camunda.webapps.schema.entities.operation.BatchOperationEntity source) {
-    return !StringUtils.isNumeric(source.getId());
+    return source.getBatchOperationId() == null;
   }
 
   private BatchOperationEntity mapBatchOperation(

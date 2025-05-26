@@ -27,7 +27,8 @@ public final class BatchOperationFilterTransformer
   public SearchQuery toSearchQuery(final BatchOperationFilter filter) {
     final var queries = new ArrayList<SearchQuery>();
 
-    Optional.ofNullable(stringTerms(ID, filter.batchOperationIds())).ifPresent(queries::add);
+    Optional.ofNullable(stringTerms(BATCH_OPERATION_ID, filter.batchOperationIds()))
+        .ifPresent(queries::add);
     Optional.ofNullable(stringTerms(STATE, filter.state())).ifPresent(queries::add);
     Optional.ofNullable(stringTerms(TYPE, filter.operationTypes())).ifPresent(queries::add);
 

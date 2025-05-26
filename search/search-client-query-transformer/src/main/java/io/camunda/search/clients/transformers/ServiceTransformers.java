@@ -8,9 +8,11 @@
 package io.camunda.search.clients.transformers;
 
 import io.camunda.search.aggregation.AggregationBase;
+import io.camunda.search.aggregation.BatchOperationAggregation;
 import io.camunda.search.aggregation.ProcessDefinitionFlowNodeStatisticsAggregation;
 import io.camunda.search.aggregation.ProcessInstanceFlowNodeStatisticsAggregation;
 import io.camunda.search.aggregation.result.AggregationResultBase;
+import io.camunda.search.aggregation.result.BatchOperationAggregationResult;
 import io.camunda.search.aggregation.result.ProcessDefinitionFlowNodeStatisticsAggregationResult;
 import io.camunda.search.aggregation.result.ProcessInstanceFlowNodeStatisticsAggregationResult;
 import io.camunda.search.clients.aggregator.SearchAggregator;
@@ -18,9 +20,11 @@ import io.camunda.search.clients.core.AggregationResult;
 import io.camunda.search.clients.core.SearchQueryRequest;
 import io.camunda.search.clients.query.SearchQuery;
 import io.camunda.search.clients.transformers.aggregation.AggregationTransformer;
+import io.camunda.search.clients.transformers.aggregation.BatchOperationAggregationTransformer;
 import io.camunda.search.clients.transformers.aggregation.ProcessDefinitionFlowNodeStatisticsAggregationTransformer;
 import io.camunda.search.clients.transformers.aggregation.ProcessInstanceFlowNodeStatisticsAggregationTransformer;
 import io.camunda.search.clients.transformers.aggregation.result.AggregationResultTransformer;
+import io.camunda.search.clients.transformers.aggregation.result.BatchOperationAggregationResultTransformer;
 import io.camunda.search.clients.transformers.aggregation.result.ProcessDefinitionFlowNodeStatisticsAggregationResultTransformer;
 import io.camunda.search.clients.transformers.aggregation.result.ProcessInstanceFlowNodeStatisticsAggregationResultTransformer;
 import io.camunda.search.clients.transformers.entity.AuthorizationEntityTransformer;
@@ -121,6 +125,7 @@ import io.camunda.search.filter.UserTaskFilter;
 import io.camunda.search.filter.VariableFilter;
 import io.camunda.search.filter.VariableValueFilter;
 import io.camunda.search.query.AuthorizationQuery;
+import io.camunda.search.query.BatchOperationAggregationQuery;
 import io.camunda.search.query.BatchOperationItemQuery;
 import io.camunda.search.query.BatchOperationQuery;
 import io.camunda.search.query.DecisionDefinitionQuery;
@@ -277,6 +282,7 @@ public final class ServiceTransformers {
     Stream.of(
             AuthorizationQuery.class,
             BatchOperationQuery.class,
+            BatchOperationAggregationQuery.class,
             BatchOperationItemQuery.class,
             DecisionDefinitionQuery.class,
             DecisionInstanceQuery.class,
@@ -433,6 +439,7 @@ public final class ServiceTransformers {
     mappers.put(
         ProcessInstanceFlowNodeStatisticsAggregation.class,
         new ProcessInstanceFlowNodeStatisticsAggregationTransformer());
+    mappers.put(BatchOperationAggregation.class, new BatchOperationAggregationTransformer());
 
     // aggregation result
     mappers.put(
@@ -441,5 +448,7 @@ public final class ServiceTransformers {
     mappers.put(
         ProcessInstanceFlowNodeStatisticsAggregationResult.class,
         new ProcessInstanceFlowNodeStatisticsAggregationResultTransformer());
+    mappers.put(
+        BatchOperationAggregationResult.class, new BatchOperationAggregationResultTransformer());
   }
 }

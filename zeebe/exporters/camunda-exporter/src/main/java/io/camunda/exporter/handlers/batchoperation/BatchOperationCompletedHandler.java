@@ -8,7 +8,6 @@
 package io.camunda.exporter.handlers.batchoperation;
 
 import io.camunda.exporter.exceptions.PersistenceException;
-import io.camunda.exporter.handlers.ExportHandler;
 import io.camunda.exporter.store.BatchRequest;
 import io.camunda.webapps.schema.descriptors.template.BatchOperationTemplate;
 import io.camunda.webapps.schema.entities.operation.BatchOperationEntity;
@@ -18,16 +17,17 @@ import io.camunda.zeebe.protocol.record.ValueType;
 import io.camunda.zeebe.protocol.record.intent.BatchOperationExecutionIntent;
 import io.camunda.zeebe.protocol.record.value.BatchOperationExecutionRecordValue;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BatchOperationCompletedHandler
-    implements ExportHandler<BatchOperationEntity, BatchOperationExecutionRecordValue> {
-
-  private final String indexName;
+    extends AbstractBatchOperationHandler<BatchOperationExecutionRecordValue> {
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(BatchOperationCompletedHandler.class);
 
   public BatchOperationCompletedHandler(final String indexName) {
-    this.indexName = indexName;
+    super(indexName);
   }
 
   @Override
@@ -36,23 +36,8 @@ public class BatchOperationCompletedHandler
   }
 
   @Override
-  public Class<BatchOperationEntity> getEntityType() {
-    return BatchOperationEntity.class;
-  }
-
-  @Override
   public boolean handlesRecord(final Record<BatchOperationExecutionRecordValue> record) {
     return record.getIntent().equals(BatchOperationExecutionIntent.COMPLETED);
-  }
-
-  @Override
-  public List<String> generateIds(final Record<BatchOperationExecutionRecordValue> record) {
-    return List.of(String.valueOf(record.getValue().getBatchOperationKey()));
-  }
-
-  @Override
-  public BatchOperationEntity createNewEntity(final String id) {
-    return new BatchOperationEntity().setId(id);
   }
 
   @Override
@@ -67,10 +52,7 @@ public class BatchOperationCompletedHandler
     final Map<String, Object> updateFields = new HashMap<>();
     updateFields.put(BatchOperationTemplate.STATE, entity.getState());
     batchRequest.update(indexName, entity.getId(), updateFields);
-  }
 
-  @Override
-  public String getIndexName() {
-    return indexName;
+    LOGGER.trace("Updated batch operation {} with fields {}", entity.getId(), updateFields);
   }
 }

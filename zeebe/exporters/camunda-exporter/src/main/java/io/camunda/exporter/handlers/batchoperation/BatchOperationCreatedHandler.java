@@ -8,7 +8,6 @@
 package io.camunda.exporter.handlers.batchoperation;
 
 import io.camunda.exporter.exceptions.PersistenceException;
-import io.camunda.exporter.handlers.ExportHandler;
 import io.camunda.exporter.store.BatchRequest;
 import io.camunda.webapps.schema.entities.operation.BatchOperationEntity;
 import io.camunda.webapps.schema.entities.operation.BatchOperationEntity.BatchOperationState;
@@ -17,15 +16,12 @@ import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.ValueType;
 import io.camunda.zeebe.protocol.record.intent.BatchOperationIntent;
 import io.camunda.zeebe.protocol.record.value.BatchOperationCreationRecordValue;
-import java.util.List;
 
 public class BatchOperationCreatedHandler
-    implements ExportHandler<BatchOperationEntity, BatchOperationCreationRecordValue> {
-
-  private final String indexName;
+    extends AbstractBatchOperationHandler<BatchOperationCreationRecordValue> {
 
   public BatchOperationCreatedHandler(final String indexName) {
-    this.indexName = indexName;
+    super(indexName);
   }
 
   @Override
@@ -34,23 +30,8 @@ public class BatchOperationCreatedHandler
   }
 
   @Override
-  public Class<BatchOperationEntity> getEntityType() {
-    return BatchOperationEntity.class;
-  }
-
-  @Override
   public boolean handlesRecord(final Record<BatchOperationCreationRecordValue> record) {
     return record.getIntent().equals(BatchOperationIntent.CREATED);
-  }
-
-  @Override
-  public List<String> generateIds(final Record<BatchOperationCreationRecordValue> record) {
-    return List.of(String.valueOf(record.getValue().getBatchOperationKey()));
-  }
-
-  @Override
-  public BatchOperationEntity createNewEntity(final String id) {
-    return new BatchOperationEntity().setId(id);
   }
 
   @Override
@@ -58,7 +39,7 @@ public class BatchOperationCreatedHandler
       final Record<BatchOperationCreationRecordValue> record, final BatchOperationEntity entity) {
     final BatchOperationCreationRecordValue value = record.getValue();
     entity
-        .setId(String.valueOf(value.getBatchOperationKey()))
+        .setBatchOperationId(Long.toString(value.getBatchOperationKey()))
         .setType(OperationType.valueOf(value.getBatchOperationType().name()))
         .setState(BatchOperationState.CREATED);
   }
@@ -67,10 +48,5 @@ public class BatchOperationCreatedHandler
   public void flush(final BatchOperationEntity entity, final BatchRequest batchRequest)
       throws PersistenceException {
     batchRequest.add(indexName, entity);
-  }
-
-  @Override
-  public String getIndexName() {
-    return indexName;
   }
 }

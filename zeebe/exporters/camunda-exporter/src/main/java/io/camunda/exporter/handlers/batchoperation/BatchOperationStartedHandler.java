@@ -8,7 +8,6 @@
 package io.camunda.exporter.handlers.batchoperation;
 
 import io.camunda.exporter.exceptions.PersistenceException;
-import io.camunda.exporter.handlers.ExportHandler;
 import io.camunda.exporter.store.BatchRequest;
 import io.camunda.webapps.schema.descriptors.template.BatchOperationTemplate;
 import io.camunda.webapps.schema.entities.operation.BatchOperationEntity;
@@ -19,16 +18,16 @@ import io.camunda.zeebe.protocol.record.intent.BatchOperationIntent;
 import io.camunda.zeebe.protocol.record.value.BatchOperationCreationRecordValue;
 import io.camunda.zeebe.util.DateUtil;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BatchOperationStartedHandler
-    implements ExportHandler<BatchOperationEntity, BatchOperationCreationRecordValue> {
-
-  private final String indexName;
+    extends AbstractBatchOperationHandler<BatchOperationCreationRecordValue> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(BatchOperationStartedHandler.class);
 
   public BatchOperationStartedHandler(final String indexName) {
-    this.indexName = indexName;
+    super(indexName);
   }
 
   @Override
@@ -37,23 +36,8 @@ public class BatchOperationStartedHandler
   }
 
   @Override
-  public Class<BatchOperationEntity> getEntityType() {
-    return BatchOperationEntity.class;
-  }
-
-  @Override
   public boolean handlesRecord(final Record<BatchOperationCreationRecordValue> record) {
     return record.getIntent().equals(BatchOperationIntent.STARTED);
-  }
-
-  @Override
-  public List<String> generateIds(final Record<BatchOperationCreationRecordValue> record) {
-    return List.of(String.valueOf(record.getValue().getBatchOperationKey()));
-  }
-
-  @Override
-  public BatchOperationEntity createNewEntity(final String id) {
-    return new BatchOperationEntity().setId(id);
   }
 
   @Override
@@ -71,10 +55,7 @@ public class BatchOperationStartedHandler
     updateFields.put(BatchOperationTemplate.STATE, entity.getState());
     updateFields.put(BatchOperationTemplate.START_DATE, entity.getStartDate());
     batchRequest.update(indexName, entity.getId(), updateFields);
-  }
 
-  @Override
-  public String getIndexName() {
-    return indexName;
+    LOGGER.trace("Updated batch operation {} with fields {}", entity.getId(), updateFields);
   }
 }

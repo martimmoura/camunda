@@ -12,6 +12,9 @@
 			"name": {
 				"type": "keyword"
 			},
+			"batchOperationId": {
+				"type": "keyword"
+			},
 			"instancesCount": {
 				"type": "long"
 			},

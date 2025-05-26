@@ -12,6 +12,7 @@ import static io.camunda.zeebe.protocol.record.value.EntityType.MAPPING;
 import static io.camunda.zeebe.protocol.record.value.EntityType.ROLE;
 import static io.camunda.zeebe.protocol.record.value.EntityType.USER;
 
+import io.camunda.search.aggregation.result.BatchOperationAggregationResult;
 import io.camunda.search.aggregation.result.ProcessDefinitionFlowNodeStatisticsAggregationResult;
 import io.camunda.search.aggregation.result.ProcessInstanceFlowNodeStatisticsAggregationResult;
 import io.camunda.search.clients.auth.DocumentAuthorizationQueryStrategy;
@@ -48,6 +49,7 @@ import io.camunda.search.filter.ProcessDefinitionStatisticsFilter;
 import io.camunda.search.filter.ProcessInstanceStatisticsFilter;
 import io.camunda.search.filter.UsageMetricsFilter;
 import io.camunda.search.query.AuthorizationQuery;
+import io.camunda.search.query.BatchOperationAggregationQuery;
 import io.camunda.search.query.BatchOperationItemQuery;
 import io.camunda.search.query.BatchOperationQuery;
 import io.camunda.search.query.DecisionDefinitionQuery;
@@ -555,8 +557,14 @@ public class DocumentBasedSearchClients implements SearchClientsProxy, Closeable
   @Override
   public SearchQueryResult<BatchOperationEntity> searchBatchOperations(
       final BatchOperationQuery query) {
-    return getSearchExecutor()
-        .search(query, io.camunda.webapps.schema.entities.operation.BatchOperationEntity.class);
+    final var result =
+        getSearchExecutor()
+            .aggregate(
+                new BatchOperationAggregationQuery(query.filter(), query.page()),
+                BatchOperationAggregationResult.class)
+            .items();
+
+    return new SearchQueryResult<>(result.size(), result, null, null);
   }
 
   @Override

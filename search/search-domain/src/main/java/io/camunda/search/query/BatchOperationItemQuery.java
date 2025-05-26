@@ -7,6 +7,7 @@
  */
 package io.camunda.search.query;
 
+import io.camunda.search.aggregation.BatchOperationAggregation;
 import io.camunda.search.filter.BatchOperationItemFilter;
 import io.camunda.search.filter.FilterBuilders;
 import io.camunda.search.page.SearchQueryPage;
@@ -19,6 +20,11 @@ import java.util.function.Function;
 public record BatchOperationItemQuery(
     BatchOperationItemFilter filter, BatchOperationItemSort sort, SearchQueryPage page)
     implements TypedSearchQuery<BatchOperationItemFilter, BatchOperationItemSort> {
+
+  @Override
+  public BatchOperationAggregation aggregation() {
+    return new BatchOperationAggregation();
+  }
 
   public static BatchOperationItemQuery of(
       final Function<Builder, ObjectBuilder<BatchOperationItemQuery>> fn) {

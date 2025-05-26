@@ -16,6 +16,7 @@ import java.util.UUID;
 public class BatchOperationEntity extends AbstractExporterEntity<BatchOperationEntity> {
 
   private String name;
+  private String batchOperationId;
   private OperationType type;
   private OffsetDateTime startDate;
   private OffsetDateTime endDate;
@@ -39,6 +40,15 @@ public class BatchOperationEntity extends AbstractExporterEntity<BatchOperationE
 
   public BatchOperationEntity setName(final String name) {
     this.name = name;
+    return this;
+  }
+
+  public String getBatchOperationId() {
+    return batchOperationId;
+  }
+
+  public BatchOperationEntity setBatchOperationId(final String batchOperationId) {
+    this.batchOperationId = batchOperationId;
     return this;
   }
 
