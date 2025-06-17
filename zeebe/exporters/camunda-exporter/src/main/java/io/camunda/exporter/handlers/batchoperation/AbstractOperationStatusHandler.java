@@ -56,6 +56,10 @@ public abstract class AbstractOperationStatusHandler<R extends RecordValue>
 
   @Override
   public void updateEntity(final Record<R> record, final OperationEntity entity) {
+    entity
+        .setBatchOperationId(String.valueOf(record.getOperationReference()))
+        .setItemKey(getItemKey(record));
+
     if (isCompleted(record)) {
       entity.setState(OperationState.COMPLETED);
       entity.setCompletedDate(DateUtil.toOffsetDateTime(record.getTimestamp()));
@@ -74,7 +78,7 @@ public abstract class AbstractOperationStatusHandler<R extends RecordValue>
     updateFields.put(OperationTemplate.COMPLETED_DATE, entity.getCompletedDate());
     updateFields.put(OperationTemplate.ERROR_MSG, entity.getErrorMessage());
 
-    batchRequest.update(indexName, entity.getId(), updateFields);
+    batchRequest.upsert(indexName, entity.getId(), entity, updateFields);
     LOGGER.trace("Updated operation {} with fields {}", entity.getId(), updateFields);
   }
 
