@@ -24,6 +24,15 @@
   </properties>
 
   <dependencies>
+    <!-- https://mvnrepository.com/artifact/io.opentelemetry.instrumentation/opentelemetry-spring-boot-starter -->
+    <dependency>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -481,6 +490,8 @@
             <dependency>org.xmlunit:xmlunit-core</dependency>
             <!-- Used for OpenAPI generation -->
             <dependency>jakarta.annotation:jakarta.annotation-api</dependency>
+            <!-- Used for Opentelemetry-->
+            <dependency>io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter</dependency>
           </usedDependencies>
         </configuration>
       </plugin>
