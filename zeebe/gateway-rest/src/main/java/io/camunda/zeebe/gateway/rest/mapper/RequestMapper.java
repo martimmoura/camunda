@@ -602,10 +602,8 @@ public class RequestMapper {
     return method
         .get()
         .handleAsync(
-            (response, error) -> {
-              //              span.addEvent("Service method completed").end();
-              return RestErrorMapper.getResponse(error).orElseGet(() -> result.apply(response));
-            });
+            (response, error) ->
+                RestErrorMapper.getResponse(error).orElseGet(() -> result.apply(response)));
   }
 
   public static <BrokerResponseT>
