@@ -21,6 +21,7 @@ import io.camunda.client.api.JsonMapper;
 import io.camunda.client.jobhandling.CamundaClientExecutorService;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.grpc.ClientInterceptor;
+import io.opentelemetry.api.OpenTelemetry;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.time.Duration;
@@ -186,8 +187,8 @@ public class SpringCamundaClientConfiguration implements CamundaClientConfigurat
   }
 
   @Override
-  public String getOpenTelemetryEndpoint() {
-    return "";
+  public OpenTelemetry getOpenTelemetry() {
+    throw new UnsupportedOperationException("OpenTelemetry is not supported yet.");
   }
 
   private String composeGatewayAddress() {
