@@ -261,6 +261,7 @@ import io.camunda.client.impl.fetch.UserGetRequestImpl;
 import io.camunda.client.impl.fetch.UserTaskGetFormRequestImpl;
 import io.camunda.client.impl.fetch.UserTaskGetRequestImpl;
 import io.camunda.client.impl.fetch.VariableGetRequestImpl;
+import io.camunda.client.impl.grpc.OpenTelemetryInterceptor;
 import io.camunda.client.impl.http.HttpClient;
 import io.camunda.client.impl.http.HttpClientFactory;
 import io.camunda.client.impl.search.request.AuthorizationsSearchRequestImpl;
@@ -313,6 +314,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
+import io.opentelemetry.api.OpenTelemetry;
 import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -412,6 +414,8 @@ public final class CamundaClientImpl implements CamundaClient {
     channelBuilder.userAgent("camunda-client-java/" + VersionUtil.getVersion());
     channelBuilder.maxInboundMessageSize(config.getMaxMessageSize());
     channelBuilder.maxInboundMetadataSize(config.getMaxMetadataSize());
+
+    channelBuilder.intercept(new OpenTelemetryInterceptor(config.getOpenTelemetry()));
 
     if (config.useDefaultRetryPolicy()) {
       final Map<String, Object> serviceConfig = defaultServiceConfig();
