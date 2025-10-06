@@ -21,6 +21,7 @@ import io.camunda.configuration.Interceptor;
 import io.camunda.configuration.InternalApi;
 import io.camunda.configuration.KeyStore;
 import io.camunda.configuration.Membership;
+import io.camunda.configuration.Metrics;
 import io.camunda.configuration.PrimaryStorage;
 import io.camunda.configuration.Rdbms;
 import io.camunda.configuration.RdbmsHistory;
@@ -121,6 +122,8 @@ public class BrokerBasedPropertiesOverride {
     } else {
       populateCamundaExporter(override);
     }
+
+    populateFromMonitoring(override);
 
     // TODO: Populate the rest of the bean using unifiedConfiguration
     //  override.setSampleField(unifiedConfiguration.getSampleField());
@@ -658,6 +661,15 @@ public class BrokerBasedPropertiesOverride {
         args, "batchOperationItemInsertBlockSize", database.getBatchOperationItemInsertBlockSize());
 
     exporter.setArgs(args);
+  }
+
+  private void populateFromMonitoring(final BrokerBasedProperties override) {
+    populateFromMetrics(override);
+  }
+
+  private void populateFromMetrics(final BrokerBasedProperties override) {
+    final Metrics metrics = unifiedConfiguration.getCamunda().getMonitoring().getMetrics();
+    override.getExperimental().getFeatures().setEnableActorMetrics(metrics.isActor());
   }
 
   private void setArgIfNotNull(
