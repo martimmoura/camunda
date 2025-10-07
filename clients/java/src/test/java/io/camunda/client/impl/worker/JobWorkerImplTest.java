@@ -42,6 +42,7 @@ import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcCleanupRule;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -94,7 +95,10 @@ public final class JobWorkerImplTest {
 
     client =
         new CamundaClientImpl(
-            new CamundaClientBuilderImpl().preferRestOverGrpc(false).build().getConfiguration(),
+            new CamundaClientBuilderImpl()
+                .preferRestOverGrpc(false)
+                .build()
+                .getConfiguration(),
             channel,
             GatewayGrpc.newStub(channel));
   }
@@ -212,7 +216,7 @@ public final class JobWorkerImplTest {
 
     try (final CamundaClient client =
         new CamundaClientImpl(
-            new CamundaClientBuilderImpl(),
+            new CamundaClientBuilderImpl().openTelemetry(GlobalOpenTelemetry.get()).build().getConfiguration(),
             channel,
             GatewayGrpc.newStub(channel),
             new ExecutorResource(executor, false))) {
@@ -252,7 +256,7 @@ public final class JobWorkerImplTest {
 
     try (final CamundaClient client =
         new CamundaClientImpl(
-            new CamundaClientBuilderImpl(),
+            new CamundaClientBuilderImpl().openTelemetry(GlobalOpenTelemetry.get()).build().getConfiguration(),
             channel,
             GatewayGrpc.newStub(channel),
             new ExecutorResource(closedExecutor, false))) {
