@@ -33,13 +33,13 @@ import org.slf4j.LoggerFactory;
 
 public class SpringCamundaClientConfiguration implements CamundaClientConfiguration {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SpringCamundaClientConfiguration.class);
   private final CamundaClientProperties camundaClientProperties;
   private final JsonMapper jsonMapper;
   private final List<ClientInterceptor> interceptors;
   private final List<AsyncExecChainHandler> chainHandlers;
   private final CamundaClientExecutorService zeebeClientExecutorService;
   private final CredentialsProvider credentialsProvider;
+  private final OpenTelemetry openTelemetry;
 
   public SpringCamundaClientConfiguration(
       final CamundaClientProperties camundaClientProperties,
@@ -47,13 +47,15 @@ public class SpringCamundaClientConfiguration implements CamundaClientConfigurat
       final List<ClientInterceptor> interceptors,
       final List<AsyncExecChainHandler> chainHandlers,
       final CamundaClientExecutorService zeebeClientExecutorService,
-      final CredentialsProvider credentialsProvider) {
+      final CredentialsProvider credentialsProvider,
+      final OpenTelemetry openTelemetry) {
     this.camundaClientProperties = camundaClientProperties;
     this.jsonMapper = jsonMapper;
     this.interceptors = interceptors;
     this.chainHandlers = chainHandlers;
     this.zeebeClientExecutorService = zeebeClientExecutorService;
     this.credentialsProvider = credentialsProvider;
+    this.openTelemetry = openTelemetry;
   }
 
   @Override
@@ -188,53 +190,7 @@ public class SpringCamundaClientConfiguration implements CamundaClientConfigurat
 
   @Override
   public OpenTelemetry getOpenTelemetry() {
-    throw new UnsupportedOperationException("OpenTelemetry is not supported yet.");
-  }
-
-  private String composeGatewayAddress() {
-    final URI gatewayUrl = getGrpcAddress();
-    final int port = gatewayUrl.getPort();
-    final String host = gatewayUrl.getHost();
-
-    // port is set
-    if (port != -1) {
-      return composeAddressWithPort(host, port, "Gateway port is set");
-    }
-
-    // port is not set, attempting to use default
-    int defaultPort;
-    try {
-      defaultPort = gatewayUrl.toURL().getDefaultPort();
-    } catch (final MalformedURLException e) {
-      LOG.warn("Invalid gateway url: {}", gatewayUrl);
-      // could not get a default port, setting it to -1 and moving to the next statement
-      defaultPort = -1;
-    }
-    if (defaultPort != -1) {
-      return composeAddressWithPort(host, defaultPort, "Gateway port has default");
-    }
-
-    // do not use any port
-    LOG.debug("Gateway cannot be determined, address will be '{}'", host);
-    return host;
-  }
-
-  private String composeAddressWithPort(
-      final String host, final int port, final String debugMessage) {
-    final String gatewayAddress = host + ":" + port;
-    LOG.debug("{}, address will be '{}'", debugMessage, gatewayAddress);
-    return gatewayAddress;
-  }
-
-  private boolean composePlaintext() {
-    final String protocol = getGrpcAddress().getScheme();
-    return switch (protocol) {
-      case "http", "grpc" -> true;
-      case "https", "grpcs" -> false;
-      default ->
-          throw new IllegalStateException(
-              String.format("Unrecognized zeebe protocol '%s'", protocol));
-    };
+    return openTelemetry;
   }
 
   @Override
