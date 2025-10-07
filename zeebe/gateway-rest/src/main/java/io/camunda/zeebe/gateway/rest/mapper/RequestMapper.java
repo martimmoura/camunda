@@ -598,7 +598,6 @@ public class RequestMapper {
   public static <BrokerResponseT> CompletableFuture<ResponseEntity<Object>> executeServiceMethod(
       final Supplier<CompletableFuture<BrokerResponseT>> method,
       final Function<BrokerResponseT, ResponseEntity<Object>> result) {
-    //    final var span = Span.current();
     return method
         .get()
         .handleAsync(
