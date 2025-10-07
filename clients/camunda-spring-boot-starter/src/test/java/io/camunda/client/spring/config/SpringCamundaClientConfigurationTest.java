@@ -39,7 +39,12 @@ public class SpringCamundaClientConfigurationTest {
       final CamundaClientExecutorService executorService,
       final CredentialsProvider credentialsProvider) {
     return new SpringCamundaClientConfiguration(
-        properties, jsonMapper, interceptors, chainHandlers, executorService, credentialsProvider,
+        properties,
+        jsonMapper,
+        interceptors,
+        chainHandlers,
+        executorService,
+        credentialsProvider,
         GlobalOpenTelemetry.get());
   }
 

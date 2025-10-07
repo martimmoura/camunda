@@ -22,14 +22,11 @@ import io.camunda.client.jobhandling.CamundaClientExecutorService;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.OpenTelemetry;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.hc.client5.http.async.AsyncExecChainHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SpringCamundaClientConfiguration implements CamundaClientConfiguration {
 
