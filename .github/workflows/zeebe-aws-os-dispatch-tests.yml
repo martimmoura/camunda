@@ -127,6 +127,7 @@ jobs:
           -D forkCount=${{ matrix.maven-test-fork-count }}
           -D maven.javadoc.skip=true
           -D skipUTs -D skipChecks
+          -D flaky.test.reportDir=failsafe-reports
           -D test.integration.opensearch.aws.url="${{ env.OS_URL }}"
           -D test.integration.camunda.database.type=AWS_OS
           -D test.integration.opensearch.aws.timeout.seconds=180
@@ -162,7 +163,7 @@ jobs:
     name: "Send slack notification on fail"
     runs-on: ubuntu-latest
     needs: integration-tests
-    if: failure()
+    if: failure() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/stable/'))
     permissions:
       contents: read
       actions: write
