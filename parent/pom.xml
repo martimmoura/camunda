@@ -101,8 +101,8 @@
     <version.feel-scala>1.19.3</version.feel-scala>
     <version.dmn-scala>1.10.1</version.dmn-scala>
     <version.rest-assured>5.5.5</version.rest-assured>
-    <version.spring>6.2.8</version.spring>
-    <version.spring-security>6.5.2</version.spring-security>
+    <version.spring>6.2.11</version.spring>
+    <version.spring-security>6.5.5</version.spring-security>
     <version.spring-boot>3.5.5</version.spring-boot>
     <version.tomcat>10.1.44</version.tomcat>
     <version.concurrentunit>0.4.6</version.concurrentunit>
@@ -116,7 +116,7 @@
     <version.byte-buddy>1.17.6</version.byte-buddy>
     <version.revapi>0.28.4</version.revapi>
     <version.resilience4j>2.3.0</version.resilience4j>
-    <version.immutables>2.10.1</version.immutables>
+    <version.immutables>2.11.4</version.immutables>
     <version.jsr305>3.0.2</version.jsr305>
     <version.classgraph>4.8.181</version.classgraph>
     <version.servlet-api>2.5</version.servlet-api>
@@ -140,7 +140,7 @@
     <version.jackson-annotations>2.19.2</version.jackson-annotations>
     <version.json-path>2.9.0</version.json-path>
     <version.swagger-annotations>2.2.34</version.swagger-annotations>
-    <version.swagger-parser>2.1.16</version.swagger-parser>
+    <version.swagger-parser>2.1.22</version.swagger-parser>
     <version.checker-qual>3.49.5</version.checker-qual>
     <version.java-jwt>4.5.0</version.java-jwt>
     <version.reactive-streams>1.0.4</version.reactive-streams>
@@ -221,7 +221,7 @@
     <plugin.version.revapi>0.15.1</plugin.version.revapi>
     <plugin.version.shade>3.6.0</plugin.version.shade>
     <plugin.version.sonar>3.9.1.2184</plugin.version.sonar>
-    <plugin.version.spotbugs>4.9.3.2</plugin.version.spotbugs>
+    <plugin.version.spotbugs>4.9.6.0</plugin.version.spotbugs>
     <plugin.version.surefire>3.5.4</plugin.version.surefire>
     <plugin.version.versions>2.18.0</plugin.version.versions>
     <plugin.version.frontend-maven>1.15.1</plugin.version.frontend-maven>
@@ -286,6 +286,11 @@
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>zeebe-broker</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>debug-cli</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -612,24 +617,6 @@
 
       <dependency>
         <groupId>io.camunda</groupId>
-        <artifactId>operate-importer</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>operate-importer-common</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>operate-importer-8_7</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
         <artifactId>operate-data-generator</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -731,24 +718,6 @@
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>tasklist-webjar</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>tasklist-importer</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>tasklist-importer-common</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>tasklist-importer-870</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -2339,7 +2308,7 @@
                 <goal>check</goal>
               </goals>
               <phase>validate</phase>
-              <configuration></configuration>
+              <configuration/>
             </execution>
           </executions>
         </plugin>
@@ -2369,7 +2338,7 @@
               <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
               <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
             </statelessTestsetReporter>
-            <consoleOutputReporter implementation="io.camunda.zeebe.ZeebeConsoleOutputReporter"></consoleOutputReporter>
+            <consoleOutputReporter implementation="io.camunda.zeebe.ZeebeConsoleOutputReporter"/>
             <skip>${skipUTs}</skip>
           </configuration>
           <dependencies>
@@ -2409,7 +2378,7 @@
               <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
               <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
             </statelessTestsetReporter>
-            <consoleOutputReporter implementation="io.camunda.zeebe.ZeebeConsoleOutputReporter"></consoleOutputReporter>
+            <consoleOutputReporter implementation="io.camunda.zeebe.ZeebeConsoleOutputReporter"/>
             <skip>${skipITs}</skip>
           </configuration>
           <dependencies>
@@ -2499,7 +2468,7 @@
                   <argument>-classpath</argument>
                   <!-- automatically creates the classpath using all project dependencies,
                      also adding the project build directory -->
-                  <classpath></classpath>
+                  <classpath/>
                   <argument>uk.co.real_logic.sbe.SbeTool</argument>
                 </arguments>
                 <workingDirectory>${project.build.directory}/generated-sources</workingDirectory>
@@ -2534,7 +2503,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore></ignore>
+                    <ignore/>
                   </action>
                 </pluginExecution>
               </pluginExecutions>
@@ -2619,7 +2588,7 @@
               </goals>
               <configuration>
                 <rules>
-                  <banDuplicatePomDependencyVersions></banDuplicatePomDependencyVersions>
+                  <banDuplicatePomDependencyVersions/>
                 </rules>
               </configuration>
             </execution>
@@ -2667,6 +2636,8 @@
                   <dep>com.h2database:h2</dep>
                   <dep>org.postgresql:postgresql</dep>
                   <dep>org.mariadb.jdbc:mariadb-java-client</dep>
+                  <dep>com.mysql:mysql-connector-j</dep>
+                  <dep>com.microsoft.sqlserver:mssql-jdbc</dep>
                   <dep>com.oracle.database.jdbc:ojdbc8</dep>
                   <dep>io.camunda:camunda-authentication</dep>
                   <dep>org.skyscreamer:jsonassert</dep>
@@ -2903,7 +2874,7 @@
             <configuration>
               <groups>strace</groups>
               <!-- Reset <excludedGroups> as it take precedence over <groups> -->
-              <excludedGroups combine.self="override"></excludedGroups>
+              <excludedGroups combine.self="override"/>
             </configuration>
           </plugin>
         </plugins>
@@ -2921,7 +2892,7 @@
             <configuration>
               <groups>performance</groups>
               <!-- Reset <excludedGroups> as it take precedence over <groups> -->
-              <excludedGroups combine.self="override"></excludedGroups>
+              <excludedGroups combine.self="override"/>
               <excludes>
                 <exclude>**/LargeStateControllerPerformanceTest.java</exclude>
               </excludes>

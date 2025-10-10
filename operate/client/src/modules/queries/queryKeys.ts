@@ -21,6 +21,16 @@ const queryKeys = {
       value?: Variable['value'];
     }) => [...queryKeys.variables.search(), ...Object.values(params)],
   },
+  decisionInstances: {
+    get: (decisionEvaluationInstanceKey: string) => [
+      'decisionInstance',
+      decisionEvaluationInstanceKey,
+    ],
+    drdData: (decisionEvaluationKey: string) => [
+      'decisionInstanceDrdData',
+      decisionEvaluationKey,
+    ],
+  },
 };
 
 export {queryKeys};

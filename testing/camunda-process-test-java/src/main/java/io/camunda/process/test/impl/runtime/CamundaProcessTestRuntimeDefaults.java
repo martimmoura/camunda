@@ -18,7 +18,6 @@ package io.camunda.process.test.impl.runtime;
 import io.camunda.process.test.api.CamundaClientBuilderFactory;
 import io.camunda.process.test.api.CamundaProcessTestRuntimeMode;
 import java.net.URI;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -36,19 +35,17 @@ public class CamundaProcessTestRuntimeDefaults {
   public static final String DEFAULT_CAMUNDA_LOGGER_NAME = "tc.camunda";
   public static final String DEFAULT_CONNECTORS_LOGGER_NAME = "tc.connectors";
 
-  public static final Duration DEFAULT_CAMUNDA_CLIENT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
-
   public static final URI LOCAL_CAMUNDA_MONITORING_API_ADDRESS =
       URI.create("http://0.0.0.0:" + ContainerRuntimePorts.CAMUNDA_MONITORING_API);
   public static final URI LOCAL_CONNECTORS_REST_API_ADDRESS = URI.create("http://0.0.0.0:8085");
+
+  public static final String DEFAULT_COVERAGE_REPORT_DIRECTORY = "target/coverage-report";
 
   private static final ContainerRuntimePropertiesUtil PROPERTIES_UTIL =
       ContainerRuntimePropertiesUtil.readProperties();
 
   public static final String ELASTICSEARCH_DOCKER_IMAGE_VERSION =
       PROPERTIES_UTIL.getElasticsearchVersion();
-
-  public static final String CAMUNDA_VERSION = PROPERTIES_UTIL.getCamundaVersion();
 
   public static final String CAMUNDA_DOCKER_IMAGE_NAME =
       PROPERTIES_UTIL.getCamundaDockerImageName();
@@ -83,9 +80,13 @@ public class CamundaProcessTestRuntimeDefaults {
   public static final URI REMOTE_CLIENT_GRPC_ADDRESS = PROPERTIES_UTIL.getRemoteClientGrpcAddress();
   public static final URI REMOTE_CLIENT_REST_ADDRESS = PROPERTIES_UTIL.getRemoteClientRestAddress();
 
-  public static final Duration CAMUNDA_CLIENT_REQUEST_TIMEOUT =
-      PROPERTIES_UTIL.getCamundaClientRequestTimeout();
-
   public static final CamundaClientBuilderFactory CAMUNDA_CLIENT_BUILDER_FACTORY =
       PROPERTIES_UTIL.getCamundaClientBuilderFactory();
+
+  public static final boolean MULTI_TENANCY_ENABLED = PROPERTIES_UTIL.isMultiTenancyEnabled();
+
+  public static final String COVERAGE_REPORT_DIRECTORY =
+      PROPERTIES_UTIL.getCoverageReportProperties().getCoverageReportDirectory();
+  public static final List<String> COVERAGE_EXCLUDED_PROCESSES =
+      PROPERTIES_UTIL.getCoverageReportProperties().getCoverageExcludedProcesses();
 }

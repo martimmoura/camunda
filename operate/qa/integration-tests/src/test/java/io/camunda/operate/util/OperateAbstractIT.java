@@ -10,7 +10,6 @@ package io.camunda.operate.util;
 import static io.camunda.operate.util.OperateAbstractIT.DEFAULT_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,11 +20,8 @@ import io.camunda.operate.property.OperateProperties;
 import io.camunda.operate.qa.util.DependencyInjectionTestExecutionListener;
 import io.camunda.operate.webapp.rest.exception.NotAuthorizedException;
 import io.camunda.operate.webapp.security.tenant.TenantService;
-import io.camunda.operate.zeebe.PartitionHolder;
 import io.camunda.security.reader.TenantAccess;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.runner.RunWith;
@@ -44,8 +40,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @SpringBootTest(
     classes = {TestApplication.class, UnifiedConfigurationHelper.class, UnifiedConfiguration.class},
     properties = {
-      OperateProperties.PREFIX + ".importer.startLoadingDataOnStartup = false",
-      OperateProperties.PREFIX + ".archiver.rolloverEnabled = false",
       OperateProperties.PREFIX + ".zeebe.compatibility.enabled = true",
       "spring.mvc.pathmatch.matching-strategy=ANT_PATH_MATCHER",
       OperateProperties.PREFIX + ".multiTenancy.enabled = false",
@@ -208,11 +202,5 @@ public abstract class OperateAbstractIT {
 
   protected void assertErrorMessageIsEqualTo(final MvcResult mvcResult, final String message) {
     assertThat(mvcResult.getResolvedException().getMessage()).isEqualTo(message);
-  }
-
-  protected void mockPartitionHolder(final PartitionHolder partitionHolder) {
-    final List<Integer> partitions = new ArrayList<>();
-    partitions.add(1);
-    when(partitionHolder.getPartitionIds()).thenReturn(partitions);
   }
 }

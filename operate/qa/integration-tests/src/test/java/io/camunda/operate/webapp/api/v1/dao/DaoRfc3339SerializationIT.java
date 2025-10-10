@@ -44,15 +44,12 @@ import io.camunda.webapps.schema.entities.listview.ProcessInstanceState;
 import io.camunda.zeebe.protocol.record.value.TenantOwned;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(
     classes = {TestApplication.class, UnifiedConfigurationHelper.class, UnifiedConfiguration.class},
     properties = {
-      OperateProperties.PREFIX + ".importer.startLoadingDataOnStartup = false",
-      OperateProperties.PREFIX + ".archiver.rolloverEnabled = false",
       OperateProperties.PREFIX + ".zeebe.compatibility.enabled = true",
       "spring.mvc.pathmatch.matching-strategy=ANT_PATH_MATCHER",
       OperateProperties.PREFIX + ".multiTenancy.enabled = false",
@@ -89,9 +86,7 @@ public class DaoRfc3339SerializationIT extends OperateSearchAbstractIT {
 
   @Autowired private DecisionInstanceTemplate decisionInstanceIndex;
 
-  @Autowired
-  @Qualifier("operateFlowNodeInstanceTemplate")
-  private FlowNodeInstanceTemplate flowNodeInstanceIndex;
+  @Autowired private FlowNodeInstanceTemplate flowNodeInstanceIndex;
 
   @Autowired private IncidentTemplate incidentIndex;
   @Autowired private ListViewTemplate processInstanceIndex;

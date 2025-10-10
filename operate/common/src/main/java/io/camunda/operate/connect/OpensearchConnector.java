@@ -79,7 +79,6 @@ public class OpensearchConnector {
   private static final Logger LOGGER = LoggerFactory.getLogger(OpensearchConnector.class);
 
   private PluginRepository osClientRepository = new PluginRepository();
-  private PluginRepository zeebeOsClientRepository = new PluginRepository();
   private final OperateProperties operateProperties;
 
   private final ObjectMapper objectMapper;
@@ -93,10 +92,6 @@ public class OpensearchConnector {
 
   public void setOsClientRepository(final PluginRepository osClientRepository) {
     this.osClientRepository = osClientRepository;
-  }
-
-  public void setZeebeOsClientRepository(final PluginRepository zeebeOsClientRepository) {
-    this.zeebeOsClientRepository = zeebeOsClientRepository;
   }
 
   @Bean
@@ -142,13 +137,6 @@ public class OpensearchConnector {
       LOGGER.warn("OpenSearch cluster health check is disabled.");
     }
     return openSearchClient;
-  }
-
-  @Bean("zeebeOpensearchClient")
-  public OpenSearchClient zeebeOpensearchClient() {
-    System.setProperty("es.set.netty.runtime.available.processors", "false");
-    zeebeOsClientRepository.load(operateProperties.getZeebeOpensearch().getInterceptorPlugins());
-    return createOsClient(operateProperties.getZeebeOpensearch(), zeebeOsClientRepository);
   }
 
   public OpenSearchAsyncClient createAsyncOsClient(

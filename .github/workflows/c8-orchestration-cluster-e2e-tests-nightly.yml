@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   nightly-tests:
+    name: nightly-tests (${{ matrix.branch }} - Tasklist ${{ matrix.tasklist_mode }} mode)
     strategy:
       fail-fast: false
       matrix:
@@ -39,11 +40,11 @@ jobs:
             DATABASE=elasticsearch docker compose up -d operate tasklist
           else
             echo "Using standalone camunda container"
-            if [[ "${{ matrix.tasklist_mode }}" == "v2" ]]; then
-              echo "Starting with Tasklist V2 mode enabled"
-              CAMUNDA_TASKLIST_V2_MODE_ENABLED=true DATABASE=elasticsearch docker compose up -d camunda
+            if [[ "${{ matrix.tasklist_mode }}" == "v1" ]]; then
+              echo "Starting with Tasklist V1 mode enabled"
+              CAMUNDA_TASKLIST_V2_MODE_ENABLED=false DATABASE=elasticsearch docker compose up -d camunda
             else
-              echo "Starting with default Tasklist V1 mode"
+              echo "Starting with default Tasklist V2 mode"
               export DATABASE=elasticsearch
             echo "Starting Camunda with NON_STANDALONE:$NON_STANDALONE, database:$DATABASE"
             DATABASE=elasticsearch docker compose up -d camunda
@@ -195,6 +196,6 @@ jobs:
             --username "$TESTRAIL_USERNAME" \
             --key "$TESTRAIL_KEY" \
             parse_junit --suite-id 17050 \
-            --title "Nightly C8 Orchestration Cluster Test Results - $BRANCH_NAME (${{ matrix.tasklist_mode }}) - $(date '+%Y-%m-%d %H:%M:%S')" \
+            --title "Nightly C8 Orchestration Cluster Test Results - $BRANCH_NAME (Tasklist ${{ matrix.tasklist_mode }} mode) - $(date '+%Y-%m-%d %H:%M:%S')" \
             --close-run \
             -f "$JUNIT_RESULTS_FILE"

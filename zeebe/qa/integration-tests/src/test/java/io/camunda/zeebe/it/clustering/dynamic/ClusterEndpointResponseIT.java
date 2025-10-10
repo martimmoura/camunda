@@ -28,7 +28,9 @@ final class ClusterEndpointResponseIT {
     broker =
         new TestStandaloneBroker()
             .withBrokerConfig(
-                cfg -> cfg.getExperimental().getFeatures().setEnablePartitionScaling(true));
+                cfg -> {
+                  cfg.getCluster().setClusterId("cluster-id");
+                });
   }
 
   @Test
@@ -73,7 +75,8 @@ final class ClusterEndpointResponseIT {
                 "strategy": "HashMod",
                 "partitionCount": 1
               }
-            }
+            },
+            "clusterId": "cluster-id"
           }""");
     }
   }

@@ -42,6 +42,7 @@
     <module>security</module>
     <module>configuration</module>
     <module>load-tests/load-tester</module>
+    <module>debug-cli</module>
   </modules>
 
   <scm>
@@ -73,7 +74,7 @@
               <exclude>optimize/client/**/*.md</exclude>
               <exclude>client-components/**/*</exclude>
             </excludes>
-            <flexmark></flexmark>
+            <flexmark/>
           </markdown>
         </configuration>
       </plugin>

@@ -15,7 +15,7 @@ import io.camunda.search.clients.reader.SearchEntityReader;
 import io.camunda.search.entities.AuthorizationEntity;
 import io.camunda.search.entities.BatchOperationEntity;
 import io.camunda.search.entities.BatchOperationEntity.BatchOperationItemEntity;
-import io.camunda.search.entities.CorrelatedMessageEntity;
+import io.camunda.search.entities.CorrelatedMessageSubscriptionEntity;
 import io.camunda.search.entities.DecisionDefinitionEntity;
 import io.camunda.search.entities.DecisionInstanceEntity;
 import io.camunda.search.entities.DecisionRequirementsEntity;
@@ -50,7 +50,7 @@ import io.camunda.search.page.SearchQueryPage.SearchQueryResultType;
 import io.camunda.search.query.AuthorizationQuery;
 import io.camunda.search.query.BatchOperationItemQuery;
 import io.camunda.search.query.BatchOperationQuery;
-import io.camunda.search.query.CorrelatedMessageQuery;
+import io.camunda.search.query.CorrelatedMessageSubscriptionQuery;
 import io.camunda.search.query.DecisionDefinitionQuery;
 import io.camunda.search.query.DecisionInstanceQuery;
 import io.camunda.search.query.DecisionRequirementsQuery;
@@ -126,9 +126,9 @@ public class CamundaSearchClients implements SearchClientsProxy {
   }
 
   @Override
-  public SearchQueryResult<CorrelatedMessageEntity> searchCorrelatedMessages(
-      final CorrelatedMessageQuery query) {
-    return doSearchWithReader(readers.correlatedMessageReader(), query);
+  public SearchQueryResult<CorrelatedMessageSubscriptionEntity>
+      searchCorrelatedMessageSubscriptions(final CorrelatedMessageSubscriptionQuery query) {
+    return doSearchWithReader(readers.correlatedMessageSubscriptionReader(), query);
   }
 
   @Override
@@ -320,9 +320,9 @@ public class CamundaSearchClients implements SearchClientsProxy {
   }
 
   @Override
-  public UserEntity getUser(final String id) {
-    return doGetWithReader(readers.userReader(), id)
-        .orElseThrow(() -> entityByIdNotFoundException("User", id));
+  public UserEntity getUser(final String username) {
+    return doGetWithReader(readers.userReader(), username)
+        .orElseThrow(() -> entityByUsernameNotFoundException(username));
   }
 
   @Override
@@ -448,7 +448,16 @@ public class CamundaSearchClients implements SearchClientsProxy {
 
   protected CamundaSearchException entityByIdNotFoundException(
       final String entityType, final String id) {
+    return entityByIdNotFoundException(entityType, "id", id);
+  }
+
+  protected CamundaSearchException entityByUsernameNotFoundException(final String id) {
+    return entityByIdNotFoundException("User", "username", id);
+  }
+
+  private CamundaSearchException entityByIdNotFoundException(
+      final String entityType, final String idType, final String id) {
     return new CamundaSearchException(
-        ERROR_ENTITY_BY_ID_NOT_FOUND.formatted(entityType, id), Reason.NOT_FOUND);
+        ERROR_ENTITY_BY_ID_NOT_FOUND.formatted(entityType, idType, id), Reason.NOT_FOUND);
   }
 }

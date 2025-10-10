@@ -17,8 +17,8 @@ import io.camunda.exporter.errorhandling.ErrorHandler;
 import io.camunda.exporter.errorhandling.ErrorHandlers;
 import io.camunda.exporter.handlers.AuthorizationCreatedUpdatedHandler;
 import io.camunda.exporter.handlers.AuthorizationDeletedHandler;
-import io.camunda.exporter.handlers.CorrelatedMessageFromMessageStartEventSubscriptionHandler;
-import io.camunda.exporter.handlers.CorrelatedMessageFromProcessMessageSubscriptionHandler;
+import io.camunda.exporter.handlers.CorrelatedMessageSubscriptionFromMessageStartEventSubscriptionHandler;
+import io.camunda.exporter.handlers.CorrelatedMessageSubscriptionFromProcessMessageSubscriptionHandler;
 import io.camunda.exporter.handlers.DecisionEvaluationHandler;
 import io.camunda.exporter.handlers.DecisionHandler;
 import io.camunda.exporter.handlers.DecisionRequirementsHandler;
@@ -54,7 +54,7 @@ import io.camunda.exporter.handlers.TenantCreateUpdateHandler;
 import io.camunda.exporter.handlers.TenantDeletedHandler;
 import io.camunda.exporter.handlers.TenantEntityAddedHandler;
 import io.camunda.exporter.handlers.TenantEntityRemovedHandler;
-import io.camunda.exporter.handlers.UsageMetricHandler;
+import io.camunda.exporter.handlers.UsageMetricExportedHandler;
 import io.camunda.exporter.handlers.UserCreatedUpdatedHandler;
 import io.camunda.exporter.handlers.UserDeletedHandler;
 import io.camunda.exporter.handlers.UserTaskCompletionVariableHandler;
@@ -92,11 +92,9 @@ import io.camunda.webapps.schema.descriptors.index.MappingRuleIndex;
 import io.camunda.webapps.schema.descriptors.index.ProcessIndex;
 import io.camunda.webapps.schema.descriptors.index.RoleIndex;
 import io.camunda.webapps.schema.descriptors.index.TenantIndex;
-import io.camunda.webapps.schema.descriptors.index.UsageMetricIndex;
-import io.camunda.webapps.schema.descriptors.index.UsageMetricTUIndex;
 import io.camunda.webapps.schema.descriptors.index.UserIndex;
 import io.camunda.webapps.schema.descriptors.template.BatchOperationTemplate;
-import io.camunda.webapps.schema.descriptors.template.CorrelatedMessageTemplate;
+import io.camunda.webapps.schema.descriptors.template.CorrelatedMessageSubscriptionTemplate;
 import io.camunda.webapps.schema.descriptors.template.DecisionInstanceTemplate;
 import io.camunda.webapps.schema.descriptors.template.EventTemplate;
 import io.camunda.webapps.schema.descriptors.template.FlowNodeInstanceTemplate;
@@ -108,6 +106,8 @@ import io.camunda.webapps.schema.descriptors.template.PostImporterQueueTemplate;
 import io.camunda.webapps.schema.descriptors.template.SequenceFlowTemplate;
 import io.camunda.webapps.schema.descriptors.template.SnapshotTaskVariableTemplate;
 import io.camunda.webapps.schema.descriptors.template.TaskTemplate;
+import io.camunda.webapps.schema.descriptors.template.UsageMetricTUTemplate;
+import io.camunda.webapps.schema.descriptors.template.UsageMetricTemplate;
 import io.camunda.webapps.schema.descriptors.template.VariableTemplate;
 import io.camunda.zeebe.exporter.common.cache.ExporterEntityCacheImpl;
 import io.camunda.zeebe.exporter.common.cache.batchoperation.CachedBatchOperationEntity;
@@ -179,7 +179,6 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
                 indexDescriptors.get(RoleIndex.class).getFullQualifiedName()),
             new RoleMemberRemovedHandler(
                 indexDescriptors.get(RoleIndex.class).getFullQualifiedName()),
-            new RoleDeletedHandler(indexDescriptors.get(RoleIndex.class).getFullQualifiedName()),
             new UserCreatedUpdatedHandler(
                 indexDescriptors.get(UserIndex.class).getFullQualifiedName()),
             new UserDeletedHandler(indexDescriptors.get(UserIndex.class).getFullQualifiedName()),
@@ -307,13 +306,17 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
             new ListViewFromIncidentResolutionOperationHandler(
                 indexDescriptors.get(ListViewTemplate.class).getFullQualifiedName(),
                 batchOperationCache),
-            new UsageMetricHandler(
-                indexDescriptors.get(UsageMetricIndex.class).getFullQualifiedName(),
-                indexDescriptors.get(UsageMetricTUIndex.class).getFullQualifiedName()),
-            new CorrelatedMessageFromMessageStartEventSubscriptionHandler(
-                indexDescriptors.get(CorrelatedMessageTemplate.class).getFullQualifiedName()),
-            new CorrelatedMessageFromProcessMessageSubscriptionHandler(
-                indexDescriptors.get(CorrelatedMessageTemplate.class).getFullQualifiedName())));
+            new UsageMetricExportedHandler(
+                indexDescriptors.get(UsageMetricTemplate.class).getFullQualifiedName(),
+                indexDescriptors.get(UsageMetricTUTemplate.class).getFullQualifiedName()),
+            new CorrelatedMessageSubscriptionFromMessageStartEventSubscriptionHandler(
+                indexDescriptors
+                    .get(CorrelatedMessageSubscriptionTemplate.class)
+                    .getFullQualifiedName()),
+            new CorrelatedMessageSubscriptionFromProcessMessageSubscriptionHandler(
+                indexDescriptors
+                    .get(CorrelatedMessageSubscriptionTemplate.class)
+                    .getFullQualifiedName())));
 
     if (configuration.getBatchOperation().isExportItemsOnCreation()) {
       // only add this handler when the items are exported on creation
@@ -330,6 +333,28 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
         Map.of(
             indexDescriptors.get(OperationTemplate.class).getFullQualifiedName(),
             ErrorHandlers.IGNORE_DOCUMENT_DOES_NOT_EXIST);
+  }
+
+  @Override
+  public void reset() {
+    // clean up all references
+    indexDescriptors = null;
+    if (exportHandlers != null) {
+      exportHandlers.clear();
+      exportHandlers = null;
+    }
+    if (batchOperationCache != null) {
+      batchOperationCache.clear();
+      batchOperationCache = null;
+    }
+    if (formCache != null) {
+      formCache.clear();
+      formCache = null;
+    }
+    if (processCache != null) {
+      processCache.clear();
+      processCache = null;
+    }
   }
 
   @Override

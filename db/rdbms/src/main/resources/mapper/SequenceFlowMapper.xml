@@ -103,6 +103,25 @@
   </insert>
 
   <insert id="createIfNotExists"
+    parameterType="io.camunda.db.rdbms.write.domain.SequenceFlowDbModel" databaseId="mysql">
+    INSERT INTO ${prefix}SEQUENCE_FLOW (FLOW_NODE_ID,
+                                        PROCESS_INSTANCE_KEY,
+                                        PROCESS_DEFINITION_KEY,
+                                        PROCESS_DEFINITION_ID,
+                                        TENANT_ID,
+                                        PARTITION_ID,
+                                        HISTORY_CLEANUP_DATE)
+    VALUES (#{flowNodeId},
+            #{processInstanceKey},
+            #{processDefinitionKey},
+            #{processDefinitionId},
+            #{tenantId},
+            #{partitionId},
+            #{historyCleanupDate, jdbcType=TIMESTAMP})
+    ON DUPLICATE KEY UPDATE FLOW_NODE_ID = FLOW_NODE_ID -- this will not trigger an update
+  </insert>
+
+  <insert id="createIfNotExists"
     parameterType="io.camunda.db.rdbms.write.domain.SequenceFlowDbModel" databaseId="h2">
     MERGE INTO ${prefix}SEQUENCE_FLOW sf
       USING dual
@@ -146,10 +165,35 @@
             #{historyCleanupDate, jdbcType=TIMESTAMP})
   </insert>
 
+  <insert id="createIfNotExists"
+    parameterType="io.camunda.db.rdbms.write.domain.SequenceFlowDbModel" databaseId="mssql">
+    MERGE INTO ${prefix}SEQUENCE_FLOW AS target
+    USING (SELECT 1 AS dummy) AS src
+      ON (target.FLOW_NODE_ID = #{flowNodeId} AND target.PROCESS_INSTANCE_KEY = #{processInstanceKey})
+    WHEN NOT MATCHED THEN
+      INSERT (FLOW_NODE_ID,
+              PROCESS_INSTANCE_KEY,
+              PROCESS_DEFINITION_KEY,
+              PROCESS_DEFINITION_ID,
+              TENANT_ID,
+              PARTITION_ID,
+              HISTORY_CLEANUP_DATE)
+      VALUES (#{flowNodeId},
+              #{processInstanceKey},
+              #{processDefinitionKey},
+              #{processDefinitionId},
+              #{tenantId},
+              #{partitionId},
+              #{historyCleanupDate, jdbcType=TIMESTAMP});
+  </insert>
+
   <update id="updateHistoryCleanupDate">
     UPDATE ${prefix}SEQUENCE_FLOW
     SET HISTORY_CLEANUP_DATE = #{historyCleanupDate, jdbcType=TIMESTAMP}
-    WHERE PROCESS_INSTANCE_KEY = #{processInstanceKey}
+    WHERE PROCESS_INSTANCE_KEY IN
+    <foreach collection="processInstanceKeys" item="key" open="(" separator="," close=")">
+      #{key}
+    </foreach>
   </update>
 
   <delete id="cleanupHistory">

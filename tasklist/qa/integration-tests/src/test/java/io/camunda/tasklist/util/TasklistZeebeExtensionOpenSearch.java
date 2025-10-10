@@ -10,12 +10,7 @@ package io.camunda.tasklist.util;
 import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE;
 
 import io.camunda.tasklist.qa.util.TestUtil;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,31 +25,15 @@ import org.springframework.stereotype.Component;
 public class TasklistZeebeExtensionOpenSearch extends TasklistZeebeExtension {
 
   @Autowired
-  @Qualifier("tasklistZeebeOsClient")
-  private OpenSearchClient zeebeOsClient;
-
-  @Override
-  public void refreshIndices(final Instant instant) {
-    try {
-      final String date =
-          DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()).format(instant);
-      zeebeOsClient.indices().refresh(r -> r.index(getPrefix() + "*" + date));
-    } catch (final IOException ex) {
-      throw new RuntimeException(ex);
-    }
-  }
+  @Qualifier("tasklistOsClient")
+  private OpenSearchClient osClient;
 
   @Override
   public void afterEach(final ExtensionContext extensionContext) {
     super.afterEach(extensionContext);
     if (!failed) {
-      TestUtil.removeAllIndices(zeebeOsClient, getPrefix());
+      TestUtil.removeAllIndices(osClient, getPrefix());
     }
-  }
-
-  @Override
-  protected void setZeebeIndexesPrefix(final String prefix) {
-    tasklistProperties.getZeebeOpenSearch().setPrefix(prefix);
   }
 
   @Override
@@ -89,14 +68,6 @@ public class TasklistZeebeExtensionOpenSearch extends TasklistZeebeExtension {
         // ---
         Map.entry("CAMUNDA_DATABASE_INDEXPREFIX", indexPrefix));
   }
-
-  @Override
-  public void setZeebeOsClient(final OpenSearchClient zeebeOsClient) {
-    this.zeebeOsClient = zeebeOsClient;
-  }
-
-  @Override
-  public void setZeebeEsClient(final RestHighLevelClient zeebeEsClient) {}
 
   @Override
   protected int getDatabasePort() {

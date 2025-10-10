@@ -83,6 +83,7 @@ import io.camunda.client.api.command.UnassignClientFromGroupCommandStep1;
 import io.camunda.client.api.command.UnassignClientFromTenantCommandStep1;
 import io.camunda.client.api.command.UnassignGroupFromTenantCommandStep1;
 import io.camunda.client.api.command.UnassignMappingRuleFromGroupStep1;
+import io.camunda.client.api.command.UnassignMappingRuleFromTenantCommandStep1;
 import io.camunda.client.api.command.UnassignRoleFromClientCommandStep1;
 import io.camunda.client.api.command.UnassignRoleFromGroupCommandStep1;
 import io.camunda.client.api.command.UnassignRoleFromMappingRuleCommandStep1;
@@ -131,7 +132,7 @@ import io.camunda.client.api.search.request.BatchOperationSearchRequest;
 import io.camunda.client.api.search.request.ClientsByGroupSearchRequest;
 import io.camunda.client.api.search.request.ClientsByRoleSearchRequest;
 import io.camunda.client.api.search.request.ClientsByTenantSearchRequest;
-import io.camunda.client.api.search.request.CorrelatedMessageSearchRequest;
+import io.camunda.client.api.search.request.CorrelatedMessageSubscriptionSearchRequest;
 import io.camunda.client.api.search.request.DecisionDefinitionSearchRequest;
 import io.camunda.client.api.search.request.DecisionInstanceSearchRequest;
 import io.camunda.client.api.search.request.DecisionRequirementsSearchRequest;
@@ -222,6 +223,7 @@ import io.camunda.client.impl.command.UnassignClientFromGroupCommandImpl;
 import io.camunda.client.impl.command.UnassignClientFromTenantCommandImpl;
 import io.camunda.client.impl.command.UnassignGroupFromTenantCommandImpl;
 import io.camunda.client.impl.command.UnassignMappingRuleFromGroupCommandImpl;
+import io.camunda.client.impl.command.UnassignMappingRuleFromTenantCommandImpl;
 import io.camunda.client.impl.command.UnassignRoleFromClientCommandImpl;
 import io.camunda.client.impl.command.UnassignRoleFromGroupCommandImpl;
 import io.camunda.client.impl.command.UnassignRoleFromMappingRuleCommandImpl;
@@ -267,7 +269,7 @@ import io.camunda.client.impl.search.request.BatchOperationSearchRequestImpl;
 import io.camunda.client.impl.search.request.ClientsByGroupSearchRequestImpl;
 import io.camunda.client.impl.search.request.ClientsByRoleSearchRequestImpl;
 import io.camunda.client.impl.search.request.ClientsByTenantSearchRequestImpl;
-import io.camunda.client.impl.search.request.CorrelatedMessageSearchRequestImpl;
+import io.camunda.client.impl.search.request.CorrelatedMessageSubscriptionSearchRequestImpl;
 import io.camunda.client.impl.search.request.DecisionDefinitionSearchRequestImpl;
 import io.camunda.client.impl.search.request.DecisionInstanceSearchRequestImpl;
 import io.camunda.client.impl.search.request.DecisionRequirementsSearchRequestImpl;
@@ -650,7 +652,7 @@ public final class CamundaClientImpl implements CamundaClient {
 
   @Override
   public CorrelateMessageCommandStep1 newCorrelateMessageCommand() {
-    return new CorrelateMessageCommandImpl(httpClient, jsonMapper);
+    return new CorrelateMessageCommandImpl(config, httpClient, jsonMapper);
   }
 
   @Override
@@ -1212,6 +1214,11 @@ public final class CamundaClientImpl implements CamundaClient {
   }
 
   @Override
+  public UnassignMappingRuleFromTenantCommandStep1 newUnassignMappingRuleFromTenantCommand() {
+    return new UnassignMappingRuleFromTenantCommandImpl(httpClient);
+  }
+
+  @Override
   public CreateAuthorizationCommandStep1 newCreateAuthorizationCommand() {
     return new CreateAuthorizationCommandImpl(httpClient, jsonMapper);
   }
@@ -1349,8 +1356,9 @@ public final class CamundaClientImpl implements CamundaClient {
   }
 
   @Override
-  public CorrelatedMessageSearchRequest newCorrelatedMessageSearchRequest() {
-    return new CorrelatedMessageSearchRequestImpl(httpClient, jsonMapper);
+  public CorrelatedMessageSubscriptionSearchRequest
+      newCorrelatedMessageSubscriptionSearchRequest() {
+    return new CorrelatedMessageSubscriptionSearchRequestImpl(httpClient, jsonMapper);
   }
 
   private JobClient newJobClient() {

@@ -9,7 +9,10 @@ package io.camunda.configuration.beanoverrides;
 
 import io.camunda.configuration.Azure;
 import io.camunda.configuration.Backup;
+import io.camunda.configuration.CommandApi;
 import io.camunda.configuration.Data;
+import io.camunda.configuration.DocumentBasedHistory;
+import io.camunda.configuration.DocumentBasedSecondaryStorageDatabase;
 import io.camunda.configuration.Export;
 import io.camunda.configuration.Filesystem;
 import io.camunda.configuration.Filter;
@@ -19,11 +22,12 @@ import io.camunda.configuration.InternalApi;
 import io.camunda.configuration.KeyStore;
 import io.camunda.configuration.Membership;
 import io.camunda.configuration.PrimaryStorage;
+import io.camunda.configuration.Rdbms;
+import io.camunda.configuration.RdbmsHistory;
 import io.camunda.configuration.S3;
 import io.camunda.configuration.SasToken;
 import io.camunda.configuration.SecondaryStorage;
 import io.camunda.configuration.SecondaryStorage.SecondaryStorageType;
-import io.camunda.configuration.SecondaryStorageDatabase;
 import io.camunda.configuration.Ssl;
 import io.camunda.configuration.UnifiedConfiguration;
 import io.camunda.configuration.beans.BrokerBasedProperties;
@@ -35,6 +39,7 @@ import io.camunda.zeebe.broker.system.configuration.ExportingCfg;
 import io.camunda.zeebe.broker.system.configuration.MembershipCfg;
 import io.camunda.zeebe.broker.system.configuration.RaftCfg.FlushConfig;
 import io.camunda.zeebe.broker.system.configuration.SocketBindingCfg;
+import io.camunda.zeebe.broker.system.configuration.SocketBindingCfg.CommandApiCfg;
 import io.camunda.zeebe.broker.system.configuration.ThreadsCfg;
 import io.camunda.zeebe.broker.system.configuration.backup.AzureBackupStoreConfig;
 import io.camunda.zeebe.broker.system.configuration.backup.BackupStoreCfg;
@@ -72,7 +77,9 @@ public class BrokerBasedPropertiesOverride {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BrokerBasedPropertiesOverride.class);
   private static final String CAMUNDA_EXPORTER_CLASS_NAME = "io.camunda.exporter.CamundaExporter";
-  private static final String CAMUNDA_EXPORTER_NAME = "camundaExporter";
+  private static final String CAMUNDA_EXPORTER_NAME = "camundaexporter";
+  private static final String RDBMS_EXPORTER_CLASS_NAME = "io.camunda.exporter.rdbms.RdbmsExporter";
+  private static final String RDBMS_EXPORTER_NAME = "rdbms";
 
   private final UnifiedConfiguration unifiedConfiguration;
   private final LegacyBrokerBasedProperties legacyBrokerBasedProperties;
@@ -108,7 +115,12 @@ public class BrokerBasedPropertiesOverride {
     // from camunda.data.* sections
     populateFromData(override);
 
-    populateCamundaExporter(override);
+    if (unifiedConfiguration.getCamunda().getData().getSecondaryStorage().getType()
+        == SecondaryStorageType.rdbms) {
+      populateRdbmsExporter(override);
+    } else {
+      populateCamundaExporter(override);
+    }
 
     // TODO: Populate the rest of the bean using unifiedConfiguration
     //  override.setSampleField(unifiedConfiguration.getSampleField());
@@ -295,6 +307,7 @@ public class BrokerBasedPropertiesOverride {
         unifiedConfiguration.getCamunda().getCluster().getNetwork().withBrokerNetworkProperties();
     override.getGateway().getNetwork().setMaxMessageSize(ucNetwork.getMaxMessageSize());
 
+    populateFromCommandApi(override);
     populateFromInternalApi(override);
   }
 
@@ -314,6 +327,17 @@ public class BrokerBasedPropertiesOverride {
     socketBindingCfg.setAdvertisedHost(internalApi.getAdvertisedHost());
     Optional.ofNullable(internalApi.getAdvertisedPort())
         .ifPresent(socketBindingCfg::setAdvertisedPort);
+  }
+
+  private void populateFromCommandApi(final BrokerBasedProperties override) {
+    final CommandApi commandApi =
+        unifiedConfiguration.getCamunda().getCluster().getNetwork().getCommandApi();
+    final CommandApiCfg commandApiCfg = override.getNetwork().getCommandApi();
+
+    commandApiCfg.setHost(commandApi.getHost());
+    Optional.ofNullable(commandApi.getPort()).ifPresent(commandApiCfg::setPort);
+    commandApiCfg.setAdvertisedHost(commandApi.getAdvertisedHost());
+    Optional.ofNullable(commandApi.getAdvertisedPort()).ifPresent(commandApiCfg::setAdvertisedPort);
   }
 
   private void populateFromRestFilters(final BrokerBasedProperties override) {
@@ -499,7 +523,12 @@ public class BrokerBasedPropertiesOverride {
     final SecondaryStorage secondaryStorage =
         unifiedConfiguration.getCamunda().getData().getSecondaryStorage();
 
-    final SecondaryStorageDatabase database;
+    if (!secondaryStorage.getAutoconfigureCamundaExporter()) {
+      LOGGER.debug("Skipping autoconfiguration of the (default) exporter 'camundaexporter'");
+      return;
+    }
+
+    final DocumentBasedSecondaryStorageDatabase database;
     if (SecondaryStorageType.elasticsearch == secondaryStorage.getType()) {
       database =
           unifiedConfiguration.getCamunda().getData().getSecondaryStorage().getElasticsearch();
@@ -512,27 +541,24 @@ public class BrokerBasedPropertiesOverride {
 
     /* Load exporter config map */
 
-    final List<ExporterCfg> exporters =
-        override.getExporters().values().stream()
-            .filter(e -> e.getClassName().equals(CAMUNDA_EXPORTER_CLASS_NAME))
-            .toList();
-
-    final ExporterCfg exporter;
-    if (exporters.isEmpty()) {
+    ExporterCfg exporter = override.getCamundaExporter();
+    if (exporter == null) {
       exporter = new ExporterCfg();
       exporter.setClassName(CAMUNDA_EXPORTER_CLASS_NAME);
       exporter.setArgs(new LinkedHashMap<>());
       override.getExporters().put(CAMUNDA_EXPORTER_NAME, exporter);
-    } else {
-      exporter = exporters.getFirst();
     }
 
     /* Override config map values */
 
     // https://github.com/camunda/camunda/issues/37880
     // it is possible to have an exporter with no args defined
-    final Map<String, Object> args =
-        exporter.getArgs() == null ? new LinkedHashMap<>() : exporter.getArgs();
+    Map<String, Object> args = exporter.getArgs();
+    if (args == null) {
+      args = new LinkedHashMap<>();
+      exporter.setArgs(args);
+    }
+
     setArg(args, "connect.type", secondaryStorage.getType().name());
     setArg(args, "connect.url", database.getUrl());
     setArg(args, "connect.clusterName", database.getClusterName());
@@ -549,9 +575,96 @@ public class BrokerBasedPropertiesOverride {
 
     setArg(args, "connect.indexPrefix", database.getIndexPrefix());
     setArg(args, "index.numberOfShards", database.getNumberOfShards());
-    setArg(args, "index.numberOfReplicas", database.getNumberOfReplicas());
-    setArg(args, "index.variableSizeThreshold", database.getVariableSizeThreshold());
-    setArg(args, "index.shouldWaitForImporters", database.isWaitForImporters());
+
+    setArg(
+        args,
+        "history.processInstanceEnabled",
+        ((DocumentBasedHistory) database.getHistory()).isProcessInstanceEnabled());
+  }
+
+  private void populateRdbmsExporter(final BrokerBasedProperties override) {
+    final SecondaryStorage secondaryStorage =
+        unifiedConfiguration.getCamunda().getData().getSecondaryStorage();
+
+    final Rdbms database = secondaryStorage.getRdbms();
+
+    /* Load exporter config map */
+
+    var exporter = override.getRdbmsExporter();
+    if (exporter == null) {
+      exporter = new ExporterCfg();
+      exporter.setClassName(RDBMS_EXPORTER_CLASS_NAME);
+      exporter.setArgs(new LinkedHashMap<>());
+      override.getExporters().put(RDBMS_EXPORTER_NAME, exporter);
+    }
+
+    /* Override config map values */
+
+    // https://github.com/camunda/camunda/issues/37880
+    // it is possible to have an exporter with no args defined
+    final Map<String, Object> args =
+        exporter.getArgs() == null ? new LinkedHashMap<>() : exporter.getArgs();
+    setArgIfNotNull(args, "queueSize", database.getQueueSize());
+    setArgIfNotNull(args, "flushInterval", database.getFlushInterval());
+
+    if (database.getHistory() != null) {
+      final var history = (RdbmsHistory) database.getHistory();
+
+      setArgIfNotNull(args, "history.defaultHistoryTTL", history.getDefaultHistoryTTL());
+      setArgIfNotNull(
+          args,
+          "history.defaultBatchOperationHistoryTTL",
+          history.getDefaultBatchOperationHistoryTTL());
+      setArgIfNotNull(
+          args,
+          "history.batchOperationCancelProcessInstanceHistoryTTL",
+          history.getBatchOperationCancelProcessInstanceHistoryTTL());
+      setArgIfNotNull(
+          args,
+          "history.batchOperationMigrateProcessInstanceHistoryTTL",
+          history.getBatchOperationMigrateProcessInstanceHistoryTTL());
+      setArgIfNotNull(
+          args,
+          "history.batchOperationModifyProcessInstanceHistoryTTL",
+          history.getBatchOperationModifyProcessInstanceHistoryTTL());
+      setArgIfNotNull(
+          args,
+          "history.batchOperationResolveIncidentHistoryTTL",
+          history.getBatchOperationResolveIncidentHistoryTTL());
+      setArgIfNotNull(
+          args, "history.minHistoryCleanupInterval", history.getMinHistoryCleanupInterval());
+      setArgIfNotNull(
+          args, "history.maxHistoryCleanupInterval", history.getMaxHistoryCleanupInterval());
+      setArgIfNotNull(
+          args, "history.historyCleanupBatchSize", history.getHistoryCleanupBatchSize());
+      setArgIfNotNull(args, "history.usageMetricsCleanup", history.getUsageMetricsCleanup());
+      setArgIfNotNull(args, "history.usageMetricsTTL", history.getUsageMetricsTTL());
+    }
+
+    if (database.getProcessCache() != null) {
+      setArgIfNotNull(args, "processCache.maxSize", database.getProcessCache().getMaxSize());
+    }
+
+    if (database.getBatchOperationCache() != null) {
+      setArgIfNotNull(
+          args, "batchOperationCache.maxSize", database.getBatchOperationCache().getMaxSize());
+    }
+
+    setArgIfNotNull(
+        args,
+        "exportBatchOperationItemsOnCreation",
+        database.isExportBatchOperationItemsOnCreation());
+    setArgIfNotNull(
+        args, "batchOperationItemInsertBlockSize", database.getBatchOperationItemInsertBlockSize());
+
+    exporter.setArgs(args);
+  }
+
+  private void setArgIfNotNull(
+      final Map<String, Object> args, final String breadcrumb, final Object value) {
+    if (value != null) {
+      setArg(args, breadcrumb, value);
+    }
   }
 
   @SuppressWarnings("unchecked")

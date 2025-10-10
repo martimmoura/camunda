@@ -23,6 +23,7 @@ public final class EngineConfiguration {
   public static final int DEFAULT_DRG_CACHE_CAPACITY = 1000;
   public static final int DEFAULT_FORM_CACHE_CAPACITY = 1000;
   public static final int DEFAULT_PROCESS_CACHE_CAPACITY = 1000;
+  public static final int DEFAULT_AUTHORIZATIONS_CACHE_CAPACITY = 1000;
   public static final Duration DEFAULT_JOBS_TIMEOUT_POLLING_INTERVAL = Duration.ofSeconds(1);
   public static final int DEFAULT_JOBS_TIMEOUT_CHECKER_BATCH_LIMIT = Integer.MAX_VALUE;
   public static final int DEFAULT_VALIDATORS_RESULTS_OUTPUT_MAX_SIZE = 12 * 1024;
@@ -50,6 +51,7 @@ public final class EngineConfiguration {
   public static final Duration DEFAULT_COMMAND_REDISTRIBUTION_INTERVAL = Duration.ofSeconds(10);
   public static final Duration DEFAULT_COMMAND_REDISTRIBUTION_MAX_BACKOFF_DURATION =
       Duration.ofMinutes(5);
+  public static final boolean DEFAULT_ENABLE_IDENTITY_SETUP = true;
 
   private int messagesTtlCheckerBatchLimit = DEFAULT_MESSAGES_TTL_CHECKER_BATCH_LIMIT;
   private Duration messagesTtlCheckerInterval = DEFAULT_MESSAGES_TTL_CHECKER_INTERVAL;
@@ -57,6 +59,7 @@ public final class EngineConfiguration {
   private int formCacheCapacity = DEFAULT_FORM_CACHE_CAPACITY;
   private int resourceCacheCapacity = DEFAULT_FORM_CACHE_CAPACITY;
   private int processCacheCapacity = DEFAULT_FORM_CACHE_CAPACITY;
+  private int authorizationsCacheCapacity = DEFAULT_AUTHORIZATIONS_CACHE_CAPACITY;
 
   private Duration jobsTimeoutCheckerPollingInterval = DEFAULT_JOBS_TIMEOUT_POLLING_INTERVAL;
   private int jobsTimeoutCheckerBatchLimit = DEFAULT_JOBS_TIMEOUT_CHECKER_BATCH_LIMIT;
@@ -85,6 +88,8 @@ public final class EngineConfiguration {
   private Duration commandRedistributionInterval = DEFAULT_COMMAND_REDISTRIBUTION_INTERVAL;
   private Duration commandRedistributionMaxBackoff =
       DEFAULT_COMMAND_REDISTRIBUTION_MAX_BACKOFF_DURATION;
+
+  private boolean enableIdentitySetup = DEFAULT_ENABLE_IDENTITY_SETUP;
 
   public int getMessagesTtlCheckerBatchLimit() {
     return messagesTtlCheckerBatchLimit;
@@ -139,6 +144,15 @@ public final class EngineConfiguration {
 
   public EngineConfiguration setProcessCacheCapacity(final int processCacheCapacity) {
     this.processCacheCapacity = processCacheCapacity;
+    return this;
+  }
+
+  public int getAuthorizationsCacheCapacity() {
+    return authorizationsCacheCapacity;
+  }
+
+  public EngineConfiguration setAuthorizationsCacheCapacity(final int authorizationsCacheCapacity) {
+    this.authorizationsCacheCapacity = authorizationsCacheCapacity;
     return this;
   }
 
@@ -311,6 +325,15 @@ public final class EngineConfiguration {
   public EngineConfiguration setCommandRedistributionMaxBackoff(
       final Duration commandRedistributionMaxBackoff) {
     this.commandRedistributionMaxBackoff = commandRedistributionMaxBackoff;
+    return this;
+  }
+
+  public boolean isEnableIdentitySetup() {
+    return enableIdentitySetup;
+  }
+
+  public EngineConfiguration setEnableIdentitySetup(final boolean enableIdentitySetup) {
+    this.enableIdentitySetup = enableIdentitySetup;
     return this;
   }
 }

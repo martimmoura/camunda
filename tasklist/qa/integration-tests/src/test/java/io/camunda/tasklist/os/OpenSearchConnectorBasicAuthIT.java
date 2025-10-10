@@ -44,7 +44,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
     },
     properties = {
       TasklistProperties.PREFIX + ".elasticsearch.createSchema = false",
-      TasklistProperties.PREFIX + ".zeebe.compatibility.enabled = true"
+      TasklistProperties.PREFIX + ".zeebe.compatibility.enabled = true",
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(initializers = {OpenSearchConnectorBasicAuthIT.OpenSearchStarter.class})
@@ -73,10 +73,6 @@ public class OpenSearchConnectorBasicAuthIT extends TasklistIntegrationTest {
   @Qualifier("tasklistOsClient")
   OpenSearchClient openSearchClient;
 
-  @Autowired
-  @Qualifier("tasklistZeebeOsClient")
-  OpenSearchClient zeebeOsClient;
-
   @BeforeAll
   public static void beforeClass() {
     assumeTrue(TestUtil.isOpenSearch());
@@ -85,7 +81,6 @@ public class OpenSearchConnectorBasicAuthIT extends TasklistIntegrationTest {
   @Test
   public void canConnect() {
     assertThat(openSearchClient).isNotNull();
-    assertThat(zeebeOsClient).isNotNull();
   }
 
   static class OpenSearchStarter
@@ -116,11 +111,7 @@ public class OpenSearchConnectorBasicAuthIT extends TasklistIntegrationTest {
               // ---
 
               "camunda.tasklist.opensearch.username=opensearch",
-              "camunda.tasklist.opensearch.password=changeme",
-              "camunda.tasklist.zeebeOpensearch.url=" + osUrl,
-              "camunda.tasklist.zeebeOpensearch.username=opensearch",
-              "camunda.tasklist.zeebeOpensearch.password=changeme",
-              "camunda.tasklist.zeebeOpensearch.prefix=zeebe-record")
+              "camunda.tasklist.opensearch.password=changeme")
           .applyTo(applicationContext.getEnvironment());
     }
   }

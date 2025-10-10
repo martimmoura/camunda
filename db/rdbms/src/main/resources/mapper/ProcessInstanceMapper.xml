@@ -19,12 +19,11 @@
            pi.END_DATE,
            pi.TENANT_ID,
            CASE
-               WHEN pi.NUM_INCIDENTS = 0 THEN FALSE
-               ELSE TRUE
+               WHEN pi.NUM_INCIDENTS = 0 THEN ${false}
+               ELSE ${true}
            END AS HAS_INCIDENT,
            pi.PARENT_PROCESS_INSTANCE_KEY,
            pi.PARENT_ELEMENT_INSTANCE_KEY,
-           pi.ELEMENT_ID,
            pi.VERSION AS PROCESS_DEFINITION_VERSION,
            pi.TREE_PATH,
            pd.NAME        AS PROCESS_DEFINITION_NAME,
@@ -56,12 +55,11 @@
     pi.END_DATE,
     pi.TENANT_ID,
     CASE
-        WHEN pi.NUM_INCIDENTS = 0 THEN FALSE
-        ELSE TRUE
+        WHEN pi.NUM_INCIDENTS = 0 THEN ${false}
+        ELSE ${true}
     END AS HAS_INCIDENT,
     pi.PARENT_PROCESS_INSTANCE_KEY,
     pi.PARENT_ELEMENT_INSTANCE_KEY,
-    pi.ELEMENT_ID,
     pi.VERSION PROCESS_DEFINITION_VERSION,
     pi.TREE_PATH,
     pd.NAME AS PROCESS_DEFINITION_NAME,
@@ -406,7 +404,10 @@
   <update id="updateHistoryCleanupDate">
     UPDATE ${prefix}PROCESS_INSTANCE
     SET HISTORY_CLEANUP_DATE = #{historyCleanupDate, jdbcType=TIMESTAMP}
-    WHERE PROCESS_INSTANCE_KEY = #{processInstanceKey}
+    WHERE PROCESS_INSTANCE_KEY IN
+    <foreach collection="processInstanceKeys" item="key" open="(" separator="," close=")">
+      #{key}
+    </foreach>
   </update>
 
   <delete id="cleanupHistory">

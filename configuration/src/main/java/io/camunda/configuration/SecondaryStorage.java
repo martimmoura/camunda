@@ -10,6 +10,7 @@ package io.camunda.configuration;
 import static io.camunda.configuration.UnifiedConfigurationHelper.BackwardsCompatibilityMode.SUPPORTED_ONLY_IF_VALUES_MATCH;
 
 import java.util.Set;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 public class SecondaryStorage {
 
@@ -21,14 +22,34 @@ public class SecondaryStorage {
           "camunda.tasklist.database",
           "zeebe.broker.exporters.camundaexporter.args.connect.type");
 
+  /**
+   * When enabled, the default exporter camundaexporter is automatically configured using the
+   * secondary-storage properties. Manual configuration of camundaexporter is not necessary. If
+   * disabled, camundaexporter will not be configured automatically, but can still be enabled
+   * through manual configuration if required. Manual configuration of camundaexporter is generally
+   * not recommended, and can result in unexpected behavior if not configured correctly.
+   */
+  private boolean autoconfigureCamundaExporter = true;
+
   /** Determines the type of the secondary storage database. */
   private SecondaryStorage.SecondaryStorageType type = SecondaryStorageType.elasticsearch;
 
   /** Stores the Elasticsearch configuration, when type is set to 'elasticsearch'. */
-  private Elasticsearch elasticsearch = new Elasticsearch();
+  @NestedConfigurationProperty private Elasticsearch elasticsearch = new Elasticsearch();
 
-  /** Stores the Elasticsearch configuration, when type is set to 'elasticsearch'. */
-  private Opensearch opensearch = new Opensearch();
+  /** Stores the Opensearch configuration, when type is set to 'opensearch'. */
+  @NestedConfigurationProperty private Opensearch opensearch = new Opensearch();
+
+  /** Stores the RDBMS configuration, when type is set to 'rdbms'. */
+  @NestedConfigurationProperty private Rdbms rdbms = new Rdbms();
+
+  public boolean getAutoconfigureCamundaExporter() {
+    return autoconfigureCamundaExporter;
+  }
+
+  public void setAutoconfigureCamundaExporter(final boolean autoconfigureCamundaExporter) {
+    this.autoconfigureCamundaExporter = autoconfigureCamundaExporter;
+  }
 
   public SecondaryStorageType getType() {
     return UnifiedConfigurationHelper.validateLegacyConfiguration(
@@ -39,7 +60,7 @@ public class SecondaryStorage {
         LEGACY_TYPE_PROPERTIES);
   }
 
-  public void setType(SecondaryStorageType type) {
+  public void setType(final SecondaryStorageType type) {
     this.type = type;
   }
 
@@ -47,7 +68,7 @@ public class SecondaryStorage {
     return elasticsearch;
   }
 
-  public void setElasticsearch(Elasticsearch elasticsearch) {
+  public void setElasticsearch(final Elasticsearch elasticsearch) {
     this.elasticsearch = elasticsearch;
   }
 
@@ -55,8 +76,16 @@ public class SecondaryStorage {
     return opensearch;
   }
 
-  public void setOpensearch(Opensearch opensearch) {
+  public void setOpensearch(final Opensearch opensearch) {
     this.opensearch = opensearch;
+  }
+
+  public Rdbms getRdbms() {
+    return rdbms;
+  }
+
+  public void setRdbms(final Rdbms rdbms) {
+    this.rdbms = rdbms;
   }
 
   public enum SecondaryStorageType {

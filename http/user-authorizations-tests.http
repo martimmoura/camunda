@@ -421,9 +421,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "processDefinitionVersion": 1,
   "tenantId": "<default>",
-  "processDefinitionKey": {{PROCESS_DEFINITION_KEY}},
+  "processDefinitionKey": "{{PROCESS_DEFINITION_KEY}}",
   "variables": {}
 }
 

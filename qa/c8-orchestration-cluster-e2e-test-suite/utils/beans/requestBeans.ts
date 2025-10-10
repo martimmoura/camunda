@@ -21,7 +21,83 @@ import {
   mappingRuleIdFromKey,
 } from '../requestHelpers';
 import {APIRequestContext} from 'playwright-core';
+import {DecisionDeployment} from '@camunda8/sdk/dist/c8/lib/C8Dto';
 
+export const jobResponseFields = [
+  'type',
+  'processDefinitionId',
+  'processDefinitionVersion',
+  'elementId',
+  'customHeaders',
+  'worker',
+  'retries',
+  'deadline',
+  'variables',
+  'tenantId',
+  'jobKey',
+  'processInstanceKey',
+  'processDefinitionKey',
+  'elementInstanceKey',
+  'kind',
+  'listenerEventType',
+];
+export const jobSearchPageResponseRequiredFields = ['totalItems'];
+export const userTaskSearchPageResponseRequiredFields = ['totalItems'];
+export const jobSearchItemResponseFields = [
+  'customHeaders',
+  'elementInstanceKey',
+  'hasFailedWithRetriesLeft',
+  'jobKey',
+  'kind',
+  'listenerEventType',
+  'processDefinitionId',
+  'processDefinitionKey',
+  'processInstanceKey',
+  'retries',
+  'state',
+  'tenantId',
+  'type',
+  'worker',
+];
+export const userTaskSearchItemResponseFields = [
+  'name',
+  'state',
+  'assignee',
+  'elementId',
+  'candidateGroups',
+  'candidateUsers',
+  'processDefinitionId',
+  'creationDate',
+  'completionDate',
+  'followUpDate',
+  'dueDate',
+  'tenantId',
+  'externalFormReference',
+  'processDefinitionVersion',
+  'priority',
+  'userTaskKey',
+  'elementInstanceKey',
+  'processName',
+  'processDefinitionKey',
+  'processInstanceKey',
+  'formKey',
+];
+export const clusterTopologyResponseFields = [
+  'brokers',
+  'clusterSize',
+  'partitionsCount',
+  'replicationFactor',
+  'gatewayVersion',
+  'lastCompletedChangeId',
+];
+export const brokerResponseFields = [
+  'nodeId',
+  'host',
+  'port',
+  'partitions',
+  'version',
+];
+export const partitionsResponseFields = ['partitionId', 'role', 'health'];
 export const groupRequiredFields: string[] = ['groupId', 'name', 'description'];
 export const tenantRequiredFields: string[] = [
   'tenantId',
@@ -37,6 +113,30 @@ export const mappingRuleRequiredFields: string[] = [
 export const roleRequiredFields: string[] = ['roleId', 'name', 'description'];
 export const authorizedComponentRequiredFields: string[] = ['authorizationKey'];
 export const userRequiredFields: string[] = ['username', 'name', 'email'];
+export const decisionDefinitionRequiredFields: string[] = [
+  'decisionDefinitionId',
+  'name',
+  'version',
+  'decisionRequirementsId',
+  'tenantId',
+  'decisionDefinitionKey',
+  'decisionRequirementsKey',
+];
+export const evaluateDecisionRequiredFields: string[] = [
+  'decisionDefinitionId',
+  'decisionDefinitionName',
+  'decisionDefinitionVersion',
+  'decisionRequirementsId',
+  'output',
+  'failedDecisionDefinitionId',
+  'failureMessage',
+  'tenantId',
+  'decisionDefinitionKey',
+  'decisionRequirementsKey',
+  'decisionInstanceKey',
+  'decisionEvaluationKey',
+  'evaluatedDecisions',
+];
 export const authenticationRequiredFields: string[] = [
   'username',
   'displayName',
@@ -279,6 +379,67 @@ export function CREATE_ON_FLY_DOCUMENT_REQUEST_BODY_WITH_METADATA(
     ),
   );
   return form;
+}
+
+export function EVALUATE_DECISION_EXPECTED_BODY(
+  decision: DecisionDeployment,
+  output: string,
+) {
+  return {
+    decisionDefinitionId: decision.decisionDefinitionId,
+    decisionDefinitionName: decision.name,
+    decisionDefinitionVersion: decision.version,
+    decisionRequirementsId: decision.decisionRequirementsId,
+    output: output,
+    failedDecisionDefinitionId: '',
+    failureMessage: '',
+    tenantId: '<default>',
+    decisionDefinitionKey: decision.decisionDefinitionKey,
+    decisionRequirementsKey: decision.decisionRequirementsKey,
+  };
+}
+
+export function EVALUATED_DECISION_EXPECTED_BODY(
+  decision: DecisionDeployment,
+  matchedRuleOptions: {
+    output: string;
+    ruleId?: string;
+    outputId?: string;
+    outputName?: string;
+    outputValue?: string;
+    input: {
+      inputId: string;
+      inputName: string;
+      inputValue: string;
+    }[];
+    ruleIndex?: number;
+  },
+  emptyResults: boolean = false,
+) {
+  return {
+    decisionDefinitionId: decision.decisionDefinitionId,
+    decisionDefinitionName: decision.name,
+    decisionDefinitionVersion: decision.version,
+    output: matchedRuleOptions.output,
+    tenantId: '<default>',
+    matchedRules: emptyResults
+      ? []
+      : [
+          {
+            ruleId: matchedRuleOptions.ruleId,
+            ruleIndex: matchedRuleOptions.ruleIndex,
+            evaluatedOutputs: [
+              {
+                outputId: matchedRuleOptions.outputId,
+                outputName: matchedRuleOptions.outputName,
+                outputValue: matchedRuleOptions.outputValue,
+              },
+            ],
+          },
+        ],
+    evaluatedInputs: matchedRuleOptions.input,
+    decisionDefinitionKey: decision.decisionDefinitionKey,
+  };
 }
 
 export function CREATE_ON_FLY_MULTIPLE_DOCUMENTS_REQUEST_BODY(

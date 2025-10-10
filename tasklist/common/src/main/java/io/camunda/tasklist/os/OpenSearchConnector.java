@@ -85,7 +85,6 @@ public class OpenSearchConnector {
   private static final String AWS_OPENSEARCH_SERVICE_NAME = "es";
 
   private PluginRepository osClientRepository = new PluginRepository();
-  private PluginRepository zeebeOsClientRepository = new PluginRepository();
   @Autowired private TasklistProperties tasklistProperties;
 
   @Autowired
@@ -95,11 +94,6 @@ public class OpenSearchConnector {
   @VisibleForTesting
   public void setOsClientRepository(final PluginRepository osClientRepository) {
     this.osClientRepository = osClientRepository;
-  }
-
-  @VisibleForTesting
-  public void setZeebeOsClientRepository(final PluginRepository zeebeOsClientRepository) {
-    this.zeebeOsClientRepository = zeebeOsClientRepository;
   }
 
   @VisibleForTesting
@@ -127,13 +121,6 @@ public class OpenSearchConnector {
           e);
     }
     return openSearchClient;
-  }
-
-  @Bean
-  public OpenSearchClient tasklistZeebeOsClient() {
-    System.setProperty("es.set.netty.runtime.available.processors", "false");
-    zeebeOsClientRepository.load(tasklistProperties.getZeebeOpenSearch().getInterceptorPlugins());
-    return createOsClient(tasklistProperties.getZeebeOpenSearch(), zeebeOsClientRepository);
   }
 
   @Bean

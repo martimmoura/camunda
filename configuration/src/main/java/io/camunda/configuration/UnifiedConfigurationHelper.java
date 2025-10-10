@@ -9,6 +9,7 @@ package io.camunda.configuration;
 
 import io.camunda.exporter.config.ExporterConfiguration;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -85,21 +86,22 @@ public class UnifiedConfigurationHelper {
 
   private static <T> T getLegacyValue(
       final Set<String> legacyProperties, final ResolvableType expectedType) {
-    final Set<T> legacyValues = new HashSet<>();
+    final var legacyConfigurationValues = new HashMap<String, T>();
 
     for (final String legacyProperty : legacyProperties) {
       final String strValue = environment.getProperty(legacyProperty);
       final T legacyValue = parseLegacyValue(strValue, expectedType);
 
-      LOGGER.trace("Parsing legacy property '" + legacyProperty + "' -> '" + legacyValue + "'");
+      LOGGER.trace("Parsing legacy property '{}' -> '{}'", legacyProperty, legacyValue);
       if (legacyValue != null) {
-        legacyValues.add(legacyValue);
-        LOGGER.trace("Parsed actual value: '" + legacyValue + "'");
+        legacyConfigurationValues.put(legacyProperty, legacyValue);
+        LOGGER.trace("Parsed actual value: '{}'", legacyValue);
       } else {
         LOGGER.trace("Parsed null object");
       }
     }
 
+    final Set<T> legacyValues = new HashSet<>(legacyConfigurationValues.values());
     if (legacyValues.isEmpty()) {
       return null;
     }
@@ -107,8 +109,7 @@ public class UnifiedConfigurationHelper {
     if (legacyValues.size() > 1) {
       throw new UnifiedConfigurationException(
           String.format(
-              "Ambiguous legacy configuration. Legacy properties: %s; Legacy values: %s",
-              String.join(", ", legacyProperties), legacyValues));
+              "Ambiguous legacy configuration. Legacy properties: %s", legacyConfigurationValues));
     }
 
     return legacyValues.iterator().next();
@@ -263,10 +264,17 @@ public class UnifiedConfigurationHelper {
 
   /* Helper methods */
 
-  public static ExporterConfiguration argsToExporterConfiguration(final Map<String, Object> args) {
+  public static ExporterConfiguration argsToCamundaExporterConfiguration(
+      final Map<String, Object> args) {
     return new io.camunda.zeebe.broker.exporter.context.ExporterConfiguration(
             "camundaExporter", args)
         .instantiate(ExporterConfiguration.class);
+  }
+
+  public static io.camunda.exporter.rdbms.ExporterConfiguration argsToRdbmsExporterConfiguration(
+      final Map<String, Object> args) {
+    return new io.camunda.zeebe.broker.exporter.context.ExporterConfiguration("rdbms", args)
+        .instantiate(io.camunda.exporter.rdbms.ExporterConfiguration.class);
   }
 
   /* Setters used by tests to inject the mock objects */

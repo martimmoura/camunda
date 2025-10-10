@@ -48,8 +48,7 @@ import org.testcontainers.utility.DockerImageName;
       OperatePropertiesOverride.class,
       UnifiedConfigurationHelper.class,
       UnifiedConfiguration.class
-    },
-    properties = "camunda.data.secondary-storage.type=elasticsearch")
+    })
 public class ElasticsearchConnectorIT {
 
   @Container
@@ -98,20 +97,6 @@ public class ElasticsearchConnectorIT {
   void shouldSetCustomHeaderOnAllEsClientRequests() throws IOException {
     // given
     final var client = connector.esClient();
-
-    // when
-    client.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
-
-    // then
-    WIRE_MOCK_SERVER.verify(
-        new CountMatchingStrategy(CountMatchingStrategy.GREATER_THAN, 0),
-        WireMock.anyRequestedFor(WireMock.anyUrl()).withHeader("foo", WireMock.equalTo("bar")));
-  }
-
-  @Test
-  void shouldSetCustomHeaderOnAllZeebeEsClientRequests() throws IOException {
-    // given
-    final var client = connector.zeebeEsClient();
 
     // when
     client.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);

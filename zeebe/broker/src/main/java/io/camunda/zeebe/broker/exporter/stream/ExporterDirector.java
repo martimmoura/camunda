@@ -551,11 +551,20 @@ public final class ExporterDirector extends Actor implements HealthMonitorable, 
               .runWithRetry(
                   () -> {
                     try {
-                      container.openExporter();
+                      // If the exporter was disable or removed concurrently, then don't retry
+                      // opening.
+                      if (containers.contains(container)) {
+                        container.openExporter();
+                      } else {
+                        LOG.debug(
+                            "Exporter '{}' was disabled or removed before it could be opened.",
+                            container.getId());
+                      }
                       return true;
                     } catch (final Exception e) {
                       LOG.warn("Failed to open exporter '{}'. Retrying...", container.getId());
-                      LOG.debug("Stacktrace:", e);
+                      LOG.debug(
+                          "Failed to open exporter '{}' => Stacktrace:", container.getId(), e);
                       return false;
                     }
                   },
@@ -771,9 +780,36 @@ public final class ExporterDirector extends Actor implements HealthMonitorable, 
       final ValueType valueType = metadata.getValueType();
       final Intent intent = metadata.getIntent();
 
-      return acceptRecordTypes.get(recordType)
-          && acceptValueTypes.get(valueType)
-          && acceptIntents.get(intent);
+      try {
+        return acceptRecordTypes.get(recordType)
+            && acceptValueTypes.get(valueType)
+            && acceptIntents.get(intent);
+      } catch (final NullPointerException e) {
+        // Log added to root cause https://github.com/camunda/camunda/issues/36621
+        LOG.error(
+            """
+                NPE when applying event filter for event: {}
+                - metadata: {}
+                - acceptRecordTypes: {}
+                - acceptValueTypes: {}
+                - acceptIntents: {}""",
+            event,
+            metadata,
+            acceptRecordTypes,
+            acceptValueTypes,
+            acceptIntents.entrySet().stream()
+                .map(
+                    entry -> {
+                      final var key = entry.getKey();
+                      if (key == null) {
+                        return "null: %s".formatted(entry.getValue());
+                      }
+                      return String.format(
+                          "%s.%s: %s", key.getClass().getSimpleName(), key, entry.getValue());
+                    })
+                .toList());
+        throw e;
+      }
     }
 
     @Override

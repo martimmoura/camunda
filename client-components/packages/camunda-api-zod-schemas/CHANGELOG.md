@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.0.6
+
+### 🚀 Enhancements
+
+- add message subscription endpoints ([#39031](https://github.com/camunda/camunda/pull/39031))
+
+### ❤️ Contributors
+
+- Yuliia Saienko ([@juliasaienko](https://github.com/juliasaienko))
+
+## v0.0.5
+
+### 🩹 Fixes
+
+- update batch operation schema types ([#38331](https://github.com/camunda/camunda/pull/38331))
+
+### ❤️ Contributors
+
+- Yuliia Saienko ([@juliasaienko](https://github.com/juliasaienko))
+
+## v0.0.4
+
+### 🩹 Fixes
+
+- rename decisionInstanceSchema properties to match the api spec ([#38357](https://github.com/camunda/camunda/pull/38357))
+
+### ❤️ Contributors
+
+- Christoph Fricke ([@christoph-fricke](https://github.com/christoph-fricke))
+
+## v0.0.3
+
+### 🩹 Fixes
+
+- handle partially completed and failed batch operation states ([#37634](https://github.com/camunda/camunda/pull/37907))
+
+### ❤️ Contributors
+
+- Patrick Dehn ([@pedesen](https://github.com/pedesen))
+
 ## v0.0.2
 
 ### 🩹 Fixes

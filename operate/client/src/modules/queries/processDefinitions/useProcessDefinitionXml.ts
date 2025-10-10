@@ -13,6 +13,8 @@ import {getFlowNodes} from 'modules/utils/flowNodes';
 import type {DiagramModel} from 'bpmn-moddle';
 import type {BusinessObject} from 'bpmn-js/lib/NavigatedViewer';
 import type {ProcessDefinition} from '@camunda/camunda-api-zod-schemas/8.8';
+import {isRequestError} from 'modules/request';
+import {HTTP_STATUS_FORBIDDEN} from 'modules/constants/statusCode';
 
 const PROCESS_DEFINITION_XML_QUERY_KEY = 'processDefinitionXml';
 
@@ -54,7 +56,23 @@ function useProcessDefinitionXml<T = ParsedXmlData>({
           }
         : skipToken,
     select,
-    staleTime: Infinity,
+    staleTime: 'static',
+    refetchOnWindowFocus: false,
+    retryOnMount: false,
+    refetchOnMount: (query) => {
+      const lastError = query.state.error;
+      return (
+        isRequestError(lastError) &&
+        lastError?.response?.status !== HTTP_STATUS_FORBIDDEN
+      );
+    },
+    refetchOnReconnect: (query) => {
+      const lastError = query.state.error;
+      return (
+        isRequestError(lastError) &&
+        lastError?.response?.status !== HTTP_STATUS_FORBIDDEN
+      );
+    },
   });
 }
 

@@ -48,9 +48,8 @@ public class SecondaryStorageElasticsearchTest {
   private static final String EXPECTED_PASSWORD = "testPassword";
 
   private static final int EXPECTED_NUMBER_OF_SHARDS = 3;
-  private static final int EXPECTED_NUMBER_OF_REPLICAS = 2;
-  private static final int EXPECTED_VARIABLE_SIZE_THRESHOLD = 5000;
-  private static final boolean EXPECTED_WAIT_FOR_IMPORTERS = false;
+
+  private static final boolean EXPECTED_HISTORY_PROCESS_INSTANCE_ENABLED = false;
 
   @Nested
   @TestPropertySource(
@@ -63,12 +62,8 @@ public class SecondaryStorageElasticsearchTest {
         "camunda.data.secondary-storage.elasticsearch.index-prefix=" + EXPECTED_INDEX_PREFIX,
         "camunda.data.secondary-storage.elasticsearch.number-of-shards="
             + EXPECTED_NUMBER_OF_SHARDS,
-        "camunda.data.secondary-storage.elasticsearch.number-of-replicas="
-            + EXPECTED_NUMBER_OF_REPLICAS,
-        "camunda.data.secondary-storage.elasticsearch.variable-size-threshold="
-            + EXPECTED_VARIABLE_SIZE_THRESHOLD,
-        "camunda.data.secondary-storage.elasticsearch.wait-for-importers="
-            + EXPECTED_WAIT_FOR_IMPORTERS
+        "camunda.data.secondary-storage.elasticsearch.history.process-instance-enabled="
+            + EXPECTED_HISTORY_PROCESS_INSTANCE_ENABLED,
       })
   class WithOnlyUnifiedConfigSet {
     final OperateProperties operateProperties;
@@ -103,7 +98,6 @@ public class SecondaryStorageElasticsearchTest {
           .isEqualTo(EXPECTED_CLUSTER_NAME);
       assertThat(operateProperties.getElasticsearch().getIndexPrefix())
           .isEqualTo(EXPECTED_INDEX_PREFIX);
-      assertThat(operateProperties.getZeebeElasticsearch().getUrl()).isEqualTo(expectedUrl);
     }
 
     @Test
@@ -117,7 +111,6 @@ public class SecondaryStorageElasticsearchTest {
       assertThat(tasklistProperties.getElasticsearch().getPassword()).isEqualTo(EXPECTED_PASSWORD);
       assertThat(tasklistProperties.getElasticsearch().getIndexPrefix())
           .isEqualTo(EXPECTED_INDEX_PREFIX);
-      assertThat(tasklistProperties.getZeebeElasticsearch().getUrl()).isEqualTo(expectedUrl);
     }
 
     @Test
@@ -131,23 +124,17 @@ public class SecondaryStorageElasticsearchTest {
       assertThat(args).isNotNull();
 
       final ExporterConfiguration exporterConfiguration =
-          UnifiedConfigurationHelper.argsToExporterConfiguration(args);
+          UnifiedConfigurationHelper.argsToCamundaExporterConfiguration(args);
       assertThat(exporterConfiguration.getConnect().getType()).isEqualTo(expectedType);
       assertThat(exporterConfiguration.getConnect().getUrl()).isEqualTo(expectedUrl);
       assertThat(exporterConfiguration.getConnect().getUsername()).isEqualTo(EXPECTED_USERNAME);
       assertThat(exporterConfiguration.getConnect().getPassword()).isEqualTo(EXPECTED_PASSWORD);
       assertThat(exporterConfiguration.getConnect().getIndexPrefix())
           .isEqualTo(EXPECTED_INDEX_PREFIX);
-      assertThat(exporterConfiguration.getConnect().getClusterName())
-          .isEqualTo(EXPECTED_CLUSTER_NAME);
       assertThat(exporterConfiguration.getIndex().getNumberOfShards())
           .isEqualTo(EXPECTED_NUMBER_OF_SHARDS);
-      assertThat(exporterConfiguration.getIndex().getNumberOfReplicas())
-          .isEqualTo(EXPECTED_NUMBER_OF_REPLICAS);
-      assertThat(exporterConfiguration.getIndex().getVariableSizeThreshold())
-          .isEqualTo(EXPECTED_VARIABLE_SIZE_THRESHOLD);
-      assertThat(exporterConfiguration.getIndex().shouldWaitForImporters())
-          .isEqualTo(EXPECTED_WAIT_FOR_IMPORTERS);
+      assertThat(exporterConfiguration.getHistory().isProcessInstanceEnabled())
+          .isEqualTo(EXPECTED_HISTORY_PROCESS_INSTANCE_ENABLED);
     }
 
     @Test
@@ -161,12 +148,6 @@ public class SecondaryStorageElasticsearchTest {
     void testCamundaSearchEngineIndexProperties() {
       assertThat(searchEngineIndexProperties.getNumberOfShards())
           .isEqualTo(EXPECTED_NUMBER_OF_SHARDS);
-      assertThat(searchEngineIndexProperties.getNumberOfReplicas())
-          .isEqualTo(EXPECTED_NUMBER_OF_REPLICAS);
-      assertThat(searchEngineIndexProperties.getVariableSizeThreshold())
-          .isEqualTo(EXPECTED_VARIABLE_SIZE_THRESHOLD);
-      assertThat(searchEngineIndexProperties.shouldWaitForImporters())
-          .isEqualTo(EXPECTED_WAIT_FOR_IMPORTERS);
     }
   }
 
@@ -182,9 +163,7 @@ public class SecondaryStorageElasticsearchTest {
         "camunda.data.secondary-storage.elasticsearch.url=http://matching-url:4321",
         "camunda.database.url=http://matching-url:4321",
         "camunda.tasklist.elasticsearch.url=http://matching-url:4321",
-        "camunda.tasklist.zeebeElasticsearch.url=http://matching-url:4321",
         "camunda.operate.elasticsearch.url=http://matching-url:4321",
-        "camunda.operate.zeebeElasticsearch.url=http://matching-url:4321",
         // username
         "camunda.data.secondary-storage.elasticsearch.username=" + EXPECTED_USERNAME,
         "camunda.database.username=" + EXPECTED_USERNAME,
@@ -220,21 +199,6 @@ public class SecondaryStorageElasticsearchTest {
         "camunda.data.secondary-storage.elasticsearch.number-of-shards="
             + EXPECTED_NUMBER_OF_SHARDS,
         "camunda.database.index.numberOfShards=" + EXPECTED_NUMBER_OF_SHARDS,
-
-        // number of replicas
-        "camunda.data.secondary-storage.elasticsearch.number-of-replicas="
-            + EXPECTED_NUMBER_OF_REPLICAS,
-        "camunda.database.index.numberOfReplicas=" + EXPECTED_NUMBER_OF_REPLICAS,
-
-        // variable size threshold
-        "camunda.data.secondary-storage.elasticsearch.variable-size-threshold="
-            + EXPECTED_VARIABLE_SIZE_THRESHOLD,
-        "camunda.database.index.variableSizeThreshold=" + EXPECTED_VARIABLE_SIZE_THRESHOLD,
-
-        // wait for importers
-        "camunda.data.secondary-storage.elasticsearch.wait-for-importers="
-            + EXPECTED_WAIT_FOR_IMPORTERS,
-        "camunda.database.index.shouldWaitForImporters=" + EXPECTED_WAIT_FOR_IMPORTERS,
       })
   class WithNewAndLegacySet {
     final OperateProperties operateProperties;
@@ -269,7 +233,6 @@ public class SecondaryStorageElasticsearchTest {
           .isEqualTo(EXPECTED_INDEX_PREFIX);
       assertThat(operateProperties.getElasticsearch().getUsername()).isEqualTo(EXPECTED_USERNAME);
       assertThat(operateProperties.getElasticsearch().getPassword()).isEqualTo(EXPECTED_PASSWORD);
-      assertThat(operateProperties.getZeebeElasticsearch().getUrl()).isEqualTo(expectedUrl);
     }
 
     @Test
@@ -285,7 +248,6 @@ public class SecondaryStorageElasticsearchTest {
           .isEqualTo(EXPECTED_INDEX_PREFIX);
       assertThat(tasklistProperties.getElasticsearch().getClusterName())
           .isEqualTo(EXPECTED_CLUSTER_NAME);
-      assertThat(tasklistProperties.getZeebeElasticsearch().getUrl()).isEqualTo(expectedUrl);
     }
 
     @Test
@@ -299,7 +261,7 @@ public class SecondaryStorageElasticsearchTest {
       assertThat(args).isNotNull();
 
       final ExporterConfiguration exporterConfiguration =
-          UnifiedConfigurationHelper.argsToExporterConfiguration(args);
+          UnifiedConfigurationHelper.argsToCamundaExporterConfiguration(args);
       assertThat(exporterConfiguration.getConnect().getType()).isEqualTo(expectedType);
       assertThat(exporterConfiguration.getConnect().getUrl()).isEqualTo(expectedUrl);
       assertThat(exporterConfiguration.getConnect().getUsername()).isEqualTo(EXPECTED_USERNAME);
@@ -310,12 +272,6 @@ public class SecondaryStorageElasticsearchTest {
           .isEqualTo(EXPECTED_CLUSTER_NAME);
       assertThat(exporterConfiguration.getIndex().getNumberOfShards())
           .isEqualTo(EXPECTED_NUMBER_OF_SHARDS);
-      assertThat(exporterConfiguration.getIndex().getNumberOfReplicas())
-          .isEqualTo(EXPECTED_NUMBER_OF_REPLICAS);
-      assertThat(exporterConfiguration.getIndex().getVariableSizeThreshold())
-          .isEqualTo(EXPECTED_VARIABLE_SIZE_THRESHOLD);
-      assertThat(exporterConfiguration.getIndex().shouldWaitForImporters())
-          .isEqualTo(EXPECTED_WAIT_FOR_IMPORTERS);
     }
 
     @Test
@@ -332,12 +288,6 @@ public class SecondaryStorageElasticsearchTest {
     void testCamundaSearchEngineIndexProperties() {
       assertThat(searchEngineIndexProperties.getNumberOfShards())
           .isEqualTo(EXPECTED_NUMBER_OF_SHARDS);
-      assertThat(searchEngineIndexProperties.getNumberOfReplicas())
-          .isEqualTo(EXPECTED_NUMBER_OF_REPLICAS);
-      assertThat(searchEngineIndexProperties.getVariableSizeThreshold())
-          .isEqualTo(EXPECTED_VARIABLE_SIZE_THRESHOLD);
-      assertThat(searchEngineIndexProperties.shouldWaitForImporters())
-          .isEqualTo(EXPECTED_WAIT_FOR_IMPORTERS);
     }
   }
 
@@ -346,7 +296,7 @@ public class SecondaryStorageElasticsearchTest {
       properties = {
         "camunda.data.secondary-storage.type=elasticsearch",
         "camunda.data.secondary-storage.elasticsearch.url=http://matching-url:4321",
-        "zeebe.broker.exporters.camunda.class-name=io.camunda.exporter.CamundaExporter"
+        "zeebe.broker.exporters.camundaexporter.class-name=io.camunda.exporter.CamundaExporter"
       })
   class ExporterTestWithoutArgs {
     final OperateProperties operateProperties;
@@ -371,8 +321,61 @@ public class SecondaryStorageElasticsearchTest {
     void testSecondaryStorageExporterCanWorkWithoutArgs() {
       final ExporterCfg camundaExporter = brokerBasedProperties.getCamundaExporter();
       assertThat(camundaExporter).isNotNull();
+
       final Map<String, Object> args = camundaExporter.getArgs();
-      assertThat(args).isNull();
+      assertThat(args).isNotNull();
+
+      final ExporterConfiguration exporterConfiguration =
+          UnifiedConfigurationHelper.argsToCamundaExporterConfiguration(args);
+      assertThat(exporterConfiguration.getConnect().getUrl()).isEqualTo("http://matching-url:4321");
+    }
+  }
+
+  @Nested
+  @TestPropertySource(
+      properties = {
+        "camunda.data.secondary-storage.autoconfigure-camunda-exporter=false",
+        "camunda.data.secondary-storage.elasticsearch.url=http://unwanted-url:4321",
+      })
+  class ExporterAutoconfigurationDisabled {
+    final BrokerBasedProperties brokerBasedProperties;
+
+    ExporterAutoconfigurationDisabled(
+        @Autowired final BrokerBasedProperties brokerBasedProperties) {
+      this.brokerBasedProperties = brokerBasedProperties;
+    }
+
+    @Test
+    void testExporterAutoconfigurationDisabled() {
+      final ExporterCfg camundaExporter = brokerBasedProperties.getCamundaExporter();
+      assertThat(camundaExporter).isNull();
+    }
+  }
+
+  @Nested
+  @TestPropertySource(
+      properties = {
+        "camunda.data.secondary-storage.autoconfigure-camunda-exporter=true",
+        "camunda.data.secondary-storage.elasticsearch.url=http://wanted-url:4321",
+      })
+  class ExporterAutoconfigurationEnabled {
+    final BrokerBasedProperties brokerBasedProperties;
+
+    ExporterAutoconfigurationEnabled(@Autowired final BrokerBasedProperties brokerBasedProperties) {
+      this.brokerBasedProperties = brokerBasedProperties;
+    }
+
+    @Test
+    void testExporterAutoconfigurationEnabled() {
+      final ExporterCfg camundaExporter = brokerBasedProperties.getCamundaExporter();
+      assertThat(camundaExporter).isNotNull();
+
+      final Map<String, Object> args = camundaExporter.getArgs();
+      assertThat(args).isNotNull();
+
+      final ExporterConfiguration exporterConfiguration =
+          UnifiedConfigurationHelper.argsToCamundaExporterConfiguration(args);
+      assertThat(exporterConfiguration.getConnect().getUrl()).isEqualTo("http://wanted-url:4321");
     }
   }
 }

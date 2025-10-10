@@ -8,16 +8,10 @@
 package io.camunda.authentication.config;
 
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.util.Base64;
-import com.nimbusds.jose.util.Base64URL;
-import java.security.KeyStore;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,12 +27,16 @@ import org.springframework.util.MultiValueMap;
 public class OidcTokenEndpointCustomizer
     implements Customizer<OAuth2LoginConfigurer<HttpSecurity>.TokenEndpointConfig> {
 
+  private static final Logger LOG = LoggerFactory.getLogger(OidcTokenEndpointCustomizer.class);
   private final OidcAuthenticationConfigurationRepository oidcAuthenticationConfigurationRepository;
+  private final AssertionJwkProvider assertionJwkProvider;
   private final Map<String, JWK> resolvedJwks;
 
   public OidcTokenEndpointCustomizer(
-      final OidcAuthenticationConfigurationRepository oidcAuthenticationConfigurationRepository) {
+      final OidcAuthenticationConfigurationRepository oidcAuthenticationConfigurationRepository,
+      final AssertionJwkProvider assertionJwkProvider) {
     this.oidcAuthenticationConfigurationRepository = oidcAuthenticationConfigurationRepository;
+    this.assertionJwkProvider = assertionJwkProvider;
     resolvedJwks = new ConcurrentHashMap<>();
   }
 
@@ -88,31 +86,6 @@ public class OidcTokenEndpointCustomizer
   }
 
   private JWK resolveJwk(final String clientRegistrationId) {
-    return resolvedJwks.computeIfAbsent(clientRegistrationId, this::createJwk);
-  }
-
-  private JWK createJwk(final String clientRegistrationId) {
-    final var oidcConfig =
-        oidcAuthenticationConfigurationRepository.getOidcAuthenticationConfigurationById(
-            clientRegistrationId);
-    final var alias = oidcConfig.getAssertionKeystore().getKeyAlias();
-    final var password = oidcConfig.getAssertionKeystore().getKeyPassword().toCharArray();
-    try {
-      final KeyStore keyStore = oidcConfig.getAssertionKeystore().loadKeystore();
-      final var pk = (PrivateKey) keyStore.getKey(alias, password);
-      final var cert = keyStore.getCertificate(alias);
-      final var pub = (RSAPublicKey) cert.getPublicKey();
-      final MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-      final byte[] digest = sha256.digest(pub.getEncoded());
-
-      return new RSAKey.Builder(pub)
-          .privateKey(pk)
-          .x509CertChain(List.of(Base64.encode(cert.getEncoded())))
-          // TODO needs to be customizable for requirements by different IdPs
-          .keyID(String.valueOf(Base64URL.encode(digest)))
-          .build();
-    } catch (final Exception e) {
-      throw new IllegalStateException("Unable to load keystore", e);
-    }
+    return resolvedJwks.computeIfAbsent(clientRegistrationId, assertionJwkProvider::createJwk);
   }
 }

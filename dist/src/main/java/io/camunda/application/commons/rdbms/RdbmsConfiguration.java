@@ -14,7 +14,7 @@ import io.camunda.db.rdbms.config.VendorDatabaseProperties;
 import io.camunda.db.rdbms.read.service.AuthorizationDbReader;
 import io.camunda.db.rdbms.read.service.BatchOperationDbReader;
 import io.camunda.db.rdbms.read.service.BatchOperationItemDbReader;
-import io.camunda.db.rdbms.read.service.CorrelatedMessageDbReader;
+import io.camunda.db.rdbms.read.service.CorrelatedMessageSubscriptionDbReader;
 import io.camunda.db.rdbms.read.service.DecisionDefinitionDbReader;
 import io.camunda.db.rdbms.read.service.DecisionInstanceDbReader;
 import io.camunda.db.rdbms.read.service.DecisionRequirementsDbReader;
@@ -42,7 +42,7 @@ import io.camunda.db.rdbms.read.service.UserTaskDbReader;
 import io.camunda.db.rdbms.read.service.VariableDbReader;
 import io.camunda.db.rdbms.sql.AuthorizationMapper;
 import io.camunda.db.rdbms.sql.BatchOperationMapper;
-import io.camunda.db.rdbms.sql.CorrelatedMessageMapper;
+import io.camunda.db.rdbms.sql.CorrelatedMessageSubscriptionMapper;
 import io.camunda.db.rdbms.sql.DecisionDefinitionMapper;
 import io.camunda.db.rdbms.sql.DecisionInstanceMapper;
 import io.camunda.db.rdbms.sql.DecisionRequirementsMapper;
@@ -68,7 +68,13 @@ import io.camunda.db.rdbms.sql.VariableMapper;
 import io.camunda.db.rdbms.write.RdbmsWriterFactory;
 import io.camunda.db.rdbms.write.RdbmsWriterMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import javax.sql.DataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -77,6 +83,8 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnSecondaryStorageType(SecondaryStorageType.rdbms)
 @Import(MyBatisConfiguration.class)
 public class RdbmsConfiguration {
+
+  private static final Logger LOG = LoggerFactory.getLogger(RdbmsConfiguration.class);
 
   @Bean
   public VariableDbReader variableRdbmsReader(final VariableMapper variableMapper) {
@@ -118,8 +126,8 @@ public class RdbmsConfiguration {
   }
 
   @Bean
-  public GroupMemberDbReader groupMemberReader() {
-    return new GroupMemberDbReader();
+  public GroupMemberDbReader groupMemberReader(final GroupMapper groupMapper) {
+    return new GroupMemberDbReader(groupMapper);
   }
 
   @Bean
@@ -235,9 +243,9 @@ public class RdbmsConfiguration {
   }
 
   @Bean
-  public CorrelatedMessageDbReader correlatedMessageReader(
-      final CorrelatedMessageMapper correlatedMessageMapper) {
-    return new CorrelatedMessageDbReader(correlatedMessageMapper);
+  public CorrelatedMessageSubscriptionDbReader correlatedMessageSubscriptionReader(
+      final CorrelatedMessageSubscriptionMapper correlatedMessageSubscriptionMapper) {
+    return new CorrelatedMessageSubscriptionDbReader(correlatedMessageSubscriptionMapper);
   }
 
   @Bean
@@ -260,7 +268,7 @@ public class RdbmsConfiguration {
       final UsageMetricTUMapper usageMetricTUMapper,
       final BatchOperationMapper batchOperationMapper,
       final MessageSubscriptionMapper messageSubscriptionMapper,
-      final CorrelatedMessageMapper correlatedMessageMapper) {
+      final CorrelatedMessageSubscriptionMapper correlatedMessageSubscriptionMapper) {
     return new RdbmsWriterFactory(
         sqlSessionFactory,
         exporterPositionMapper,
@@ -280,7 +288,7 @@ public class RdbmsConfiguration {
         usageMetricTUMapper,
         batchOperationMapper,
         messageSubscriptionMapper,
-        correlatedMessageMapper);
+        correlatedMessageSubscriptionMapper);
   }
 
   @Bean
@@ -293,6 +301,7 @@ public class RdbmsConfiguration {
       final DecisionRequirementsDbReader decisionRequirementsReader,
       final FlowNodeInstanceDbReader flowNodeInstanceReader,
       final GroupDbReader groupReader,
+      final GroupMemberDbReader groupMemberReader,
       final IncidentDbReader incidentReader,
       final ProcessDefinitionDbReader processDefinitionReader,
       final ProcessInstanceDbReader processInstanceReader,
@@ -311,7 +320,7 @@ public class RdbmsConfiguration {
       final UsageMetricsDbReader usageMetricReader,
       final UsageMetricTUDbReader usageMetricTUDbReader,
       final MessageSubscriptionDbReader messageSubscriptionReader,
-      final CorrelatedMessageDbReader correlatedMessageReader) {
+      final CorrelatedMessageSubscriptionDbReader correlatedMessageSubscriptionReader) {
     return new RdbmsService(
         rdbmsWriterFactory,
         authorizationReader,
@@ -320,6 +329,7 @@ public class RdbmsConfiguration {
         decisionRequirementsReader,
         flowNodeInstanceReader,
         groupReader,
+        groupMemberReader,
         incidentReader,
         processDefinitionReader,
         processInstanceReader,
@@ -339,6 +349,17 @@ public class RdbmsConfiguration {
         usageMetricReader,
         usageMetricTUDbReader,
         messageSubscriptionReader,
-        correlatedMessageReader);
+        correlatedMessageSubscriptionReader);
+  }
+
+  @Bean
+  public CommandLineRunner logJdbcDriverInfo(final DataSource dataSource) {
+    return args -> {
+      try (final Connection conn = dataSource.getConnection()) {
+        final DatabaseMetaData meta = conn.getMetaData();
+        LOG.debug("JDBC Driver: {} {}", meta.getDriverName(), meta.getDriverVersion());
+        LOG.debug("JDBC Spec: {}.{}", meta.getJDBCMajorVersion(), meta.getJDBCMinorVersion());
+      }
+    };
   }
 }

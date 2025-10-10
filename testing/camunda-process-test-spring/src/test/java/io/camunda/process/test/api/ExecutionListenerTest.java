@@ -26,10 +26,11 @@ import io.camunda.client.CamundaClientConfiguration;
 import io.camunda.client.api.JsonMapper;
 import io.camunda.client.spring.event.CamundaClientClosingSpringEvent;
 import io.camunda.client.spring.event.CamundaClientCreatedSpringEvent;
-import io.camunda.process.test.api.coverage.ProcessCoverage;
-import io.camunda.process.test.api.coverage.ProcessCoverageBuilder;
+import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.process.test.impl.client.CamundaManagementClient;
 import io.camunda.process.test.impl.configuration.CamundaProcessTestRuntimeConfiguration;
+import io.camunda.process.test.impl.coverage.ProcessCoverage;
+import io.camunda.process.test.impl.coverage.ProcessCoverageBuilder;
 import io.camunda.process.test.impl.proxy.CamundaClientProxy;
 import io.camunda.process.test.impl.proxy.CamundaProcessTestContextProxy;
 import io.camunda.process.test.impl.proxy.ZeebeClientProxy;
@@ -44,6 +45,7 @@ import io.camunda.zeebe.spring.client.event.ZeebeClientCreatedEvent;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,6 +81,7 @@ public class ExecutionListenerTest {
   @Mock private CamundaManagementClient camundaManagementClient;
   @Mock private CamundaProcessTestResultCollector camundaProcessTestResultCollector;
   @Mock private CamundaClientBuilderFactory camundaClientBuilderFactory;
+  @Mock private CamundaClientProperties camundaClientProperties;
 
   @Captor private ArgumentCaptor<CamundaClient> camundaClientArgumentCaptor;
 
@@ -118,10 +121,14 @@ public class ExecutionListenerTest {
     when(testContext.getApplicationContext()).thenReturn(applicationContext);
     when(applicationContext.getBean(CamundaClientProxy.class)).thenReturn(camundaClientProxy);
     when(applicationContext.getBean(ZeebeClientProxy.class)).thenReturn(zeebeClientProxy);
+    when(applicationContext.getBean(JsonMapper.class)).thenReturn(null);
+    when(applicationContext.getBean(io.camunda.zeebe.client.api.JsonMapper.class)).thenReturn(null);
     when(applicationContext.getBean(CamundaProcessTestContextProxy.class))
         .thenReturn(camundaProcessTestContextProxy);
     when(applicationContext.getBean(CamundaProcessTestRuntimeConfiguration.class))
         .thenReturn(new CamundaProcessTestRuntimeConfiguration());
+    when(applicationContext.getBean(CamundaClientProperties.class))
+        .thenReturn(camundaClientProperties);
   }
 
   @Test
@@ -204,9 +211,6 @@ public class ExecutionListenerTest {
         new CamundaProcessTestExecutionListener(
             camundaRuntimeBuilder, processCoverageBuilder, NOOP);
 
-    when(applicationContext.getBeanNamesForType(JsonMapper.class))
-        .thenReturn(new String[] {"camundaJsonMapper"});
-
     when(applicationContext.getBean(JsonMapper.class)).thenReturn(jsonMapper);
 
     // when
@@ -229,10 +233,6 @@ public class ExecutionListenerTest {
     final CamundaProcessTestExecutionListener listener =
         new CamundaProcessTestExecutionListener(
             camundaRuntimeBuilder, processCoverageBuilder, NOOP);
-
-    when(applicationContext.getBeanNamesForType(JsonMapper.class)).thenReturn(new String[] {});
-    when(applicationContext.getBeanNamesForType(io.camunda.zeebe.client.api.JsonMapper.class))
-        .thenReturn(new String[] {"zeebeJsonMapper"});
 
     when(applicationContext.getBean(io.camunda.zeebe.client.api.JsonMapper.class))
         .thenReturn(zeebeClientJsonMapper);
@@ -404,6 +404,33 @@ public class ExecutionListenerTest {
     verify(processCoverageBuilder).build();
     verify(processCoverage).collectTestRunCoverage("test");
     verify(processCoverage).reportCoverage();
+  }
+
+  @Test
+  void shouldConfigureCoverageReport() {
+    // given
+    final String reportDirectory = "custom/report";
+    final List<String> excludedProcesses = List.of("process1", "process2");
+
+    final CamundaProcessTestRuntimeConfiguration configuration =
+        new CamundaProcessTestRuntimeConfiguration();
+    configuration.getCoverage().setReportDirectory(reportDirectory);
+    configuration.getCoverage().setExcludedProcesses(excludedProcesses);
+
+    when(applicationContext.getBean(CamundaProcessTestRuntimeConfiguration.class))
+        .thenReturn(configuration);
+
+    final CamundaProcessTestExecutionListener listener =
+        new CamundaProcessTestExecutionListener(
+            camundaRuntimeBuilder, processCoverageBuilder, NOOP);
+
+    // when
+    listener.beforeTestClass(testContext);
+    listener.beforeTestMethod(testContext);
+
+    // then
+    verify(processCoverageBuilder).reportDirectory(reportDirectory);
+    verify(processCoverageBuilder).excludeProcessDefinitionIds(excludedProcesses);
   }
 
   private void setManagementClientDummy(final CamundaProcessTestExecutionListener listener) {

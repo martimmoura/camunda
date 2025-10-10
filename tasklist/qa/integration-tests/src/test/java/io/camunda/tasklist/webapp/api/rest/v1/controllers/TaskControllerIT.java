@@ -13,13 +13,17 @@ import static java.util.Collections.emptyList;
 import static org.apache.commons.lang3.RandomStringUtils.randomNumeric;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
+import io.camunda.search.entities.GroupEntity;
+import io.camunda.search.query.SearchQueryResult;
 import io.camunda.security.auth.CamundaAuthentication;
+import io.camunda.service.GroupServices;
 import io.camunda.tasklist.property.IdentityProperties;
 import io.camunda.tasklist.queries.RangeValueFilter;
 import io.camunda.tasklist.queries.RangeValueFilter.RangeValueFilterBuilder;
@@ -67,6 +71,8 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
   @InjectMocks private IdentityProperties identityProperties;
 
   @MockitoBean private UserGroupService userGroupService;
+
+  @MockitoBean private GroupServices groupServices;
 
   @Autowired private WebApplicationContext context;
 
@@ -226,6 +232,14 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
       createTaskWithCandidateGroup(bpmnProcessId, flowNodeBpmnId, numberOfInstances, "Users");
       createTaskWithCandidateGroup(bpmnProcessId, flowNodeBpmnId, numberOfInstances, "Sales");
       when(userGroupService.getUserGroups()).thenReturn(List.of("Admins", "Users", "Sales"));
+      when(groupServices.withAuthentication(CamundaAuthentication.anonymous()))
+          .thenReturn(groupServices);
+      when(groupServices.search(any()))
+          .thenReturn(
+              SearchQueryResult.of(
+                  new GroupEntity(1L, "Admins", "Admins", "default"),
+                  new GroupEntity(1L, "Users", "Users", "default"),
+                  new GroupEntity(1L, "Sales", "Sales", "default")));
 
       final var searchQuery =
           new TaskQueryDTO().setCandidateGroups(new String[] {"Admins", "Users"});
@@ -707,6 +721,10 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
       identityProperties.setUserAccessRestrictionsEnabled(true);
       tasklistProperties.setIdentity(identityProperties);
       when(userGroupService.getUserGroups()).thenReturn(List.of("Admins"));
+      when(groupServices.withAuthentication(CamundaAuthentication.anonymous()))
+          .thenReturn(groupServices);
+      when(groupServices.search(any()))
+          .thenReturn(SearchQueryResult.of(new GroupEntity(1L, "Admins", "Admins", "default")));
 
       // when
       final var result = mockMvcHelper.doRequest(post(TasklistURIs.TASKS_URL_V1.concat("/search")));
@@ -780,6 +798,10 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
       identityProperties.setUserAccessRestrictionsEnabled(true);
       tasklistProperties.setIdentity(identityProperties);
       when(userGroupService.getUserGroups()).thenReturn(List.of("Admins"));
+      when(groupServices.withAuthentication(CamundaAuthentication.anonymous()))
+          .thenReturn(groupServices);
+      when(groupServices.search(any()))
+          .thenReturn(SearchQueryResult.of(new GroupEntity(1L, "Admins", "Admins", "default")));
 
       // when
       final var result = mockMvcHelper.doRequest(post(TasklistURIs.TASKS_URL_V1.concat("/search")));
@@ -1320,6 +1342,7 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
               });
 
       Awaitility.await("task variables are in secondary storage")
+          .atMost(Duration.ofSeconds(30))
           .untilAsserted(
               () -> {
                 final var taskVariables = tester.getTaskVariables();
@@ -1384,7 +1407,6 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
           mockMvcHelper.doRequest(
               patch(TasklistURIs.TASKS_URL_V1.concat("/{taskId}/complete"), taskId),
               completeRequest);
-      final var taskVariables = tester.getTaskVariables();
 
       // then
       assertThat(result)
@@ -1401,13 +1423,20 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
                 assertThat(task.getImplementation()).isEqualTo(TaskImplementation.ZEEBE_USER_TASK);
               });
 
-      assertThat(taskVariables)
-          .extracting("name", "value", "previewValue", "isValueTruncated")
-          .containsExactlyInAnyOrder(
-              tuple("var_1", "11111111111", "11111111111", false),
-              tuple("var_2", "222222", "222222", false),
-              tuple("var_a", "225", "225", false),
-              tuple("var_b", "779", "779", false));
+      Awaitility.await()
+          .atMost(Duration.ofSeconds(30))
+          .untilAsserted(
+              () -> {
+                final var taskVariables = tester.getTaskVariables();
+
+                assertThat(taskVariables)
+                    .extracting("name", "value", "previewValue", "isValueTruncated")
+                    .containsExactlyInAnyOrder(
+                        tuple("var_1", "11111111111", "11111111111", false),
+                        tuple("var_2", "222222", "222222", false),
+                        tuple("var_a", "225", "225", false),
+                        tuple("var_b", "779", "779", false));
+              });
     }
 
     @Test
@@ -1719,6 +1748,93 @@ public class TaskControllerIT extends TasklistZeebeIntegrationTest {
 
       // then
       assertThat(errorResult).hasHttpStatus(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    public void searchTasksShouldReturnFullLargeVariableValueWhenRequested() throws Exception {
+      // given
+      final String bpmnProcessId = "largeVariableTestProcess";
+      final String flowNodeBpmnId = "taskLargeVariable_".concat(UUID.randomUUID().toString());
+      final String largeValue = "x".repeat(10_000); // Simulate a large variable value
+
+      createTask(bpmnProcessId, flowNodeBpmnId, 1)
+          .claimAndCompleteHumanTask(flowNodeBpmnId, "largeVariable", "\"" + largeValue + "\"");
+
+      final var variablesRequest =
+          new TaskSearchRequest()
+              .setIncludeVariables(
+                  new IncludeVariable[] {
+                    new IncludeVariable().setName("largeVariable").setAlwaysReturnFullValue(true)
+                  });
+
+      // when
+      final var result =
+          mockMvcHelper.doRequest(
+              post(TasklistURIs.TASKS_URL_V1.concat("/search")), variablesRequest);
+
+      // then
+      assertThat(result)
+          .hasOkHttpStatus()
+          .hasApplicationJsonContentType()
+          .extractingListContent(objectMapper, TaskSearchResponse.class)
+          .satisfies(
+              tasks -> {
+                assertThat(tasks).hasSize(1);
+                tasks.forEach(
+                    task -> {
+                      assertThat(task.getVariables()).hasSize(1);
+                      final var variable = task.getVariables()[0];
+                      assertThat(variable.getName()).isEqualTo("largeVariable");
+                      assertThat(variable.getValue()).isEqualTo("\"" + largeValue + "\"");
+                      assertThat(variable.getIsValueTruncated()).isTrue();
+                      assertThat(variable.getPreviewValue().length())
+                          .isLessThan(largeValue.length());
+                    });
+              });
+    }
+
+    @Test
+    public void searchTasksShouldReturnTruncatedLargeVariableValueOnlyWhenNotRequested()
+        throws Exception {
+      // given
+      final String bpmnProcessId = "largeVariableTestProcess";
+      final String flowNodeBpmnId = "taskLargeVariable_".concat(UUID.randomUUID().toString());
+      final String largeValue = "x".repeat(10_000); // Simulate a large variable value
+
+      createTask(bpmnProcessId, flowNodeBpmnId, 1)
+          .claimAndCompleteHumanTask(flowNodeBpmnId, "largeVariable", "\"" + largeValue + "\"");
+
+      final var variablesRequest =
+          new TaskSearchRequest()
+              .setIncludeVariables(
+                  new IncludeVariable[] {
+                    new IncludeVariable().setName("largeVariable").setAlwaysReturnFullValue(false)
+                  });
+
+      // when
+      final var result =
+          mockMvcHelper.doRequest(
+              post(TasklistURIs.TASKS_URL_V1.concat("/search")), variablesRequest);
+
+      // then
+      assertThat(result)
+          .hasOkHttpStatus()
+          .hasApplicationJsonContentType()
+          .extractingListContent(objectMapper, TaskSearchResponse.class)
+          .satisfies(
+              tasks -> {
+                assertThat(tasks).hasSize(1);
+                tasks.forEach(
+                    task -> {
+                      assertThat(task.getVariables()).hasSize(1);
+                      final var variable = task.getVariables()[0];
+                      assertThat(variable.getName()).isEqualTo("largeVariable");
+                      assertThat(variable.getValue()).isNull();
+                      assertThat(variable.getIsValueTruncated()).isTrue();
+                      assertThat(variable.getPreviewValue().length())
+                          .isLessThan(largeValue.length());
+                    });
+              });
     }
   }
 }

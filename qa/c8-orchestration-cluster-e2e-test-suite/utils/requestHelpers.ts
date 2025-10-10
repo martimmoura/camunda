@@ -17,17 +17,24 @@ import {
   roleRequiredFields,
   tenantRequiredFields,
   userRequiredFields,
+  decisionDefinitionRequiredFields,
+  userTaskSearchPageResponseRequiredFields,
 } from './beans/requestBeans';
 import {
   assertEqualsForKeys,
   assertRequiredFields,
+  assertStatusCode,
   buildUrl,
   jsonHeaders,
+  paginatedResponseFields,
 } from './http';
 import {expect} from '@playwright/test';
 import type {APIRequestContext} from 'playwright-core';
 import {defaultAssertionOptions, generateUniqueId} from './constants';
 import {Serializable} from 'playwright-core/types/structs';
+import {cancelProcessInstance, createInstances, deploy} from './zeebeClient';
+import {DecisionDeployment} from '@camunda8/sdk/dist/c8/lib/C8Dto';
+import {JSONDoc} from '@camunda8/sdk/dist/zeebe/types.js';
 
 export async function createGroupAndStoreResponseFields(
   request: APIRequestContext,
@@ -104,6 +111,30 @@ export async function createTenantAndStoreResponseFields(
   for (let i = 1; i <= numberOfTenants; i++) {
     await createTenant(request, state, `${i}`);
   }
+}
+
+export async function deployDecisionAndStoreResponse(
+  state: Record<string, unknown>,
+  key: string,
+  file: string,
+) {
+  const response = await deploy([file]);
+  expect(response.decisions.length).toBe(1);
+  state[`decisionDefinition${key}`] = response.decisions[0];
+}
+
+export function DECISION_DEFINITION_RESPONSE_FROM_DEPLOYMENT(
+  decision: DecisionDeployment,
+) {
+  return {
+    decisionDefinitionKey: decision.decisionDefinitionKey,
+    decisionRequirementsKey: decision.decisionRequirementsKey,
+    decisionRequirementsId: decision.decisionRequirementsId,
+    decisionDefinitionId: decision.decisionDefinitionId,
+    name: decision.name,
+    version: decision.version,
+    tenantId: decision.tenantId,
+  };
 }
 
 export async function assignMappingToGroup(
@@ -493,6 +524,24 @@ export function assertClientsInResponse(json: Serializable, client: string) {
   assertEqualsForKeys(matchingItem, {clientId: client}, ['clientId']);
 }
 
+export function assertDecisionDefinitionInResponse(
+  json: Serializable,
+  expectedBody: Serializable,
+  decisionDefinitionKey: string,
+) {
+  const matchingItem = json.items.find(
+    (it: {decisionDefinitionKey: string}) =>
+      it.decisionDefinitionKey === decisionDefinitionKey,
+  );
+  expect(matchingItem).toBeDefined();
+  assertRequiredFields(matchingItem, decisionDefinitionRequiredFields);
+  assertEqualsForKeys(
+    matchingItem,
+    expectedBody,
+    decisionDefinitionRequiredFields,
+  );
+}
+
 export function assertRoleInResponse(
   json: Serializable,
   expectedBody: Serializable,
@@ -640,4 +689,188 @@ export function roleDescriptionFromState(
   nth: number = 1,
 ): string {
   return state[`roleDescription${state[group]}${nth}`] as string;
+}
+
+export async function activateJobToObtainAValidJobKey(
+  request: APIRequestContext,
+  jobType: string,
+): Promise<number> {
+  const activateRes = await request.post(buildUrl('/jobs/activation'), {
+    headers: jsonHeaders(),
+    data: {
+      type: jobType,
+      timeout: 10000,
+      maxJobsToActivate: 1,
+    },
+  });
+  await assertStatusCode(activateRes, 200);
+  const activateJson = await activateRes.json();
+  expect(activateJson.jobs.length).toBe(1);
+  return activateJson.jobs[0].jobKey;
+}
+
+export function setupProcessInstanceTests(
+  processFileName: string,
+  processName?: string,
+  variables?: JSONDoc,
+) {
+  const state: Record<string, unknown> = {};
+
+  return {
+    state,
+    beforeAll: async () => {
+      await deploy([`./resources/${processFileName}.bpmn`]);
+    },
+    beforeEach: async () => {
+      const processInstance = await createInstances(
+        processName ? processName : processFileName,
+        1,
+        1,
+        variables,
+      );
+      state['processInstanceKey'] = processInstance[0].processInstanceKey;
+    },
+    afterEach: async () => {
+      if (!state['processCompleted']) {
+        await cancelProcessInstance(state['processInstanceKey'] as string);
+      }
+    },
+  };
+}
+
+export async function findUserTask(
+  request: APIRequestContext,
+  procKey: string,
+  state: string,
+  elementId?: string,
+) {
+  const localState: Record<string, unknown> = {};
+  await expect(async () => {
+    const searchRes = await request.post(buildUrl('/user-tasks/search'), {
+      headers: jsonHeaders(),
+      data: {filter: {processInstanceKey: procKey}},
+    });
+    await assertStatusCode(searchRes, 200);
+    const searchJson = await searchRes.json();
+
+    assertRequiredFields(searchJson, paginatedResponseFields);
+    assertRequiredFields(
+      searchJson.page,
+      userTaskSearchPageResponseRequiredFields,
+    );
+    expect(searchJson.page.totalItems).toBe(1);
+    expect(searchJson.items.length).toBe(1);
+    expect(searchJson.items[0].state).toBe(state);
+    if (elementId) {
+      expect(searchJson.items[0].elementId).toBe(elementId);
+    }
+    localState['userTaskKey'] = searchJson.items[0].userTaskKey;
+  }).toPass(defaultAssertionOptions);
+  return localState['userTaskKey'] as string;
+}
+
+export async function completeUserTask(
+  request: APIRequestContext,
+  userTaskKey: string,
+  payload: unknown = {},
+) {
+  return await request.post(buildUrl(`/user-tasks/${userTaskKey}/completion`), {
+    headers: jsonHeaders(),
+    data: payload,
+  });
+}
+
+export async function getProcessDefinitionKey(
+  request: APIRequestContext,
+  processDefinitionId: string,
+) {
+  const res = await request.post(buildUrl('/process-instances'), {
+    headers: jsonHeaders(),
+    data: {
+      processDefinitionId: processDefinitionId,
+    },
+  });
+  await assertStatusCode(res, 200);
+  const json = await res.json();
+  await cancelProcessInstance(json.processInstanceKey);
+  return json.processDefinitionKey;
+}
+
+export async function searchJobKeysForProcessInstance(
+  request: APIRequestContext,
+  processInstanceKey: string,
+) {
+  const localState: Record<string, unknown> = {};
+  await expect(async () => {
+    const res = await request.post(buildUrl('/jobs/search'), {
+      headers: jsonHeaders(),
+      data: {
+        filter: {
+          processInstanceKey: processInstanceKey,
+        },
+      },
+    });
+
+    await assertStatusCode(res, 200);
+    const json = await res.json();
+    expect(json.page.totalItems).toBeGreaterThan(0);
+    localState['jobKeys'] = json.items.map(
+      (job: {jobKey: number}) => job.jobKey,
+    );
+  }).toPass(defaultAssertionOptions);
+  return localState['jobKeys'] as Array<string>;
+}
+
+export async function failJob(
+  request: APIRequestContext,
+  jobKey: string,
+  retries = 0,
+  errorMessage = 'Simulated failure',
+) {
+  const failRes = await request.post(buildUrl(`/jobs/${jobKey}/failure`), {
+    headers: jsonHeaders(),
+    data: {
+      retries: retries,
+      errorMessage: errorMessage,
+    },
+  });
+  await assertStatusCode(failRes, 204);
+}
+
+export async function throwErrorForJob(
+  request: APIRequestContext,
+  jobKey: string,
+  errorCode: string,
+  errorMessage = 'Simulated error',
+) {
+  const throwRes = await request.post(buildUrl(`/jobs/${jobKey}/error`), {
+    headers: jsonHeaders(),
+    data: {
+      errorCode: errorCode,
+      errorMessage: errorMessage,
+    },
+  });
+  await assertStatusCode(throwRes, 204);
+}
+
+export async function verifyIncidentsForProcessInstance(
+  request: APIRequestContext,
+  processInstanceKey: string,
+  expectedIncidentCount: number,
+) {
+  return await expect(async () => {
+    const res = await request.post(
+      buildUrl(`/process-instances/${processInstanceKey}/incidents/search`),
+      {
+        headers: jsonHeaders(),
+        data: {},
+      },
+    );
+    await assertStatusCode(res, 200);
+    const json = await res.json();
+    expect(
+      json.page.totalItems,
+      `Unexpected number of incident items. Found: ${JSON.stringify(json)}`,
+    ).toBe(expectedIncidentCount);
+  }).toPass(defaultAssertionOptions);
 }

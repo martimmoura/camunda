@@ -14,6 +14,9 @@ const batchOperationTypeSchema = z.enum([
 	'RESOLVE_INCIDENT',
 	'MIGRATE_PROCESS_INSTANCE',
 	'MODIFY_PROCESS_INSTANCE',
+	'DELETE_DECISION_DEFINITION',
+	'DELETE_PROCESS_DEFINITION',
+	'DELETE_PROCESS_INSTANCE',
 ]);
 type BatchOperationType = z.infer<typeof batchOperationTypeSchema>;
 
@@ -22,9 +25,10 @@ const batchOperationStateSchema = z.enum([
 	'ACTIVE',
 	'SUSPENDED',
 	'COMPLETED',
-	'COMPLETED_WITH_ERRORS',
+	'PARTIALLY_COMPLETED',
 	'CANCELED',
 	'INCOMPLETED',
+	'FAILED',
 ]);
 type BatchOperationState = z.infer<typeof batchOperationStateSchema>;
 
@@ -35,7 +39,7 @@ const batchOperationSchema = z.object({
 	batchOperationKey: z.string(),
 	state: batchOperationStateSchema,
 	batchOperationType: batchOperationTypeSchema,
-	startDate: z.string(),
+	startDate: z.string().optional(),
 	endDate: z.string().optional(),
 	operationsTotalCount: z.number().int(),
 	operationsFailedCount: z.number().int(),

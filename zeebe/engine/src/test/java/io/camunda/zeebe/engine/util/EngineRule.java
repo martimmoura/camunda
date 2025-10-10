@@ -11,6 +11,7 @@ import static io.camunda.zeebe.test.util.record.RecordingExporter.jobRecords;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.search.clients.SearchClientsProxy;
+import io.camunda.security.auth.BrokerRequestAuthorizationConverter;
 import io.camunda.security.configuration.SecurityConfiguration;
 import io.camunda.zeebe.db.DbKey;
 import io.camunda.zeebe.db.DbValue;
@@ -127,8 +128,14 @@ public final class EngineRule extends ExternalResource {
   private ArrayList<TestInterPartitionCommandSender> interPartitionCommandSenders;
   private Consumer<SecurityConfiguration> securityConfigModifier =
       cfg -> cfg.getAuthorizations().setEnabled(false);
-  private Consumer<EngineConfiguration> engineConfigModifier = cfg -> {};
+  private Consumer<EngineConfiguration> engineConfigModifier =
+      cfg -> {
+        // identity setup is disabled by default so we can have deterministic writes
+        // if you need it enabled, use #withIdentitySetup
+        cfg.setEnableIdentitySetup(false);
+      };
   private SearchClientsProxy searchClientsProxy;
+  private BrokerRequestAuthorizationConverter brokerRequestAuthorizationConverter;
   private Optional<RoutingState> initialRoutingState = Optional.empty();
 
   private EngineRule(final int partitionCount) {
@@ -197,7 +204,7 @@ public final class EngineRule extends ExternalResource {
 
   public EngineRule withIdentitySetup() {
     awaitIdentitySetup = true;
-    withFeatureFlags(ff -> ff.setEnableIdentitySetup(true));
+    withEngineConfig(c -> c.setEnableIdentitySetup(true));
     return this;
   }
 
@@ -262,6 +269,12 @@ public final class EngineRule extends ExternalResource {
 
   public EngineRule withSearchClientsProxy(final SearchClientsProxy searchClientsProxy) {
     this.searchClientsProxy = searchClientsProxy;
+    return this;
+  }
+
+  public EngineRule withBrokerRequestAuthorizationConverter(
+      final BrokerRequestAuthorizationConverter authorizationConverter) {
+    brokerRequestAuthorizationConverter = authorizationConverter;
     return this;
   }
 
@@ -334,7 +347,8 @@ public final class EngineRule extends ExternalResource {
                         interPartitionCommandSender,
                         featureFlags,
                         jobStreamer,
-                        searchClientsProxy)
+                        searchClientsProxy,
+                        brokerRequestAuthorizationConverter)
                     .withListener(
                         new ProcessingExporterTransistor(
                             environmentRule.getLogStream(partitionId)));

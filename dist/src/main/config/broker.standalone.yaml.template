@@ -919,6 +919,7 @@
         #     userTask: true
         #     variable: true
         #     variableDocument: true
+        #     clusterVariable: true
         #     adHocSubProcessInstruction: true
         #
         #   retention:
@@ -1003,6 +1004,7 @@
         #     userTask: true
         #     variable: true
         #     variableDocument: true
+        #     clusterVariable: true
         #     adHocSubProcessInstruction: true
 
       # Camunda Exporter ----------
@@ -1036,7 +1038,7 @@
         #   index:
         #     prefix:
         #     zeebeExporterIndexPrefix: zeebe-record
-        #     The 'zeebeIndexPrefix' must be the same value as the Elasticsearch/OpenSearch exporter 'elasticsearch.args.index.prefix'
+        #     The 'indexPrefix' must be the same value as the Elasticsearch/OpenSearch exporter 'elasticsearch.args.index.prefix'
         #     otherwise the exporter may never start.
         #     numberOfShards: 1
         #     numberOfReplicas: 0
@@ -1053,6 +1055,7 @@
         #       enabled: false
         #       minimumAge: 30d
         #       policyName: camunda-retention-policy
+        #       applyPolicyJobInterval: PT1H
         #
         #   batchOperations:
         #     exportItemsOnCreation: true

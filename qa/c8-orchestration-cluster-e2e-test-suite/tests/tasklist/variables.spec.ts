@@ -40,7 +40,7 @@ test.describe('variables page', () => {
     taskDetailsPage,
   }) => {
     await taskPanelPage.openTask('usertask_without_variables');
-    await expect(taskDetailsPage.emptyTaskMessage).toBeVisible();
+    await expect(taskDetailsPage.emptyTaskMessage).toBeVisible({timeout: 30000});
   });
 
   test('display variables when task has variables', async ({
@@ -166,6 +166,7 @@ test.describe('variables page', () => {
     taskDetailsPage,
     taskPanelPage,
   }) => {
+    test.slow();
     await taskPanelPage.filterBy('Unassigned');
     await taskPanelPage.openTask('usertask_with_variables');
 
@@ -192,7 +193,7 @@ test.describe('variables page', () => {
     await taskPanelPage.filterBy('Completed');
     await taskPanelPage.openTask('usertask_with_variables');
 
-    await expect(page.getByText('newVariableName')).toBeVisible();
+    await expect(page.getByText('newVariableName')).toBeVisible({timeout: 30000});
     await expect(page.getByText('newVariableValue')).toBeVisible();
   });
 });

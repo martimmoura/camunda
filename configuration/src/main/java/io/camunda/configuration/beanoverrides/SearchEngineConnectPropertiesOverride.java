@@ -7,6 +7,7 @@
  */
 package io.camunda.configuration.beanoverrides;
 
+import io.camunda.configuration.DocumentBasedSecondaryStorageDatabase;
 import io.camunda.configuration.SecondaryStorage;
 import io.camunda.configuration.SecondaryStorage.SecondaryStorageType;
 import io.camunda.configuration.SecondaryStorageDatabase;
@@ -28,7 +29,8 @@ import org.springframework.context.annotation.Primary;
 @DependsOn("unifiedConfigurationHelper")
 @ConditionalOnSecondaryStorageType({
   SecondaryStorageType.elasticsearch,
-  SecondaryStorageType.opensearch
+  SecondaryStorageType.opensearch,
+  SecondaryStorageType.rdbms
 })
 public class SearchEngineConnectPropertiesOverride {
 
@@ -51,17 +53,38 @@ public class SearchEngineConnectPropertiesOverride {
     final SecondaryStorage secondaryStorage =
         unifiedConfiguration.getCamunda().getData().getSecondaryStorage();
 
-    final SecondaryStorageDatabase database =
-        (secondaryStorage.getType() == SecondaryStorageType.elasticsearch)
-            ? secondaryStorage.getElasticsearch()
-            : secondaryStorage.getOpensearch();
+    final SecondaryStorageDatabase database;
+
+    switch (secondaryStorage.getType()) {
+      case elasticsearch:
+        {
+          database = secondaryStorage.getElasticsearch();
+          override.setClusterName(
+              ((DocumentBasedSecondaryStorageDatabase) database).getClusterName());
+          override.setIndexPrefix(
+              ((DocumentBasedSecondaryStorageDatabase) database).getIndexPrefix());
+          break;
+        }
+      case rdbms:
+        {
+          database = secondaryStorage.getRdbms();
+          break;
+        }
+      default:
+        {
+          database = secondaryStorage.getOpensearch();
+          override.setClusterName(
+              ((DocumentBasedSecondaryStorageDatabase) database).getClusterName());
+          override.setIndexPrefix(
+              ((DocumentBasedSecondaryStorageDatabase) database).getIndexPrefix());
+          break;
+        }
+    }
 
     override.setType(secondaryStorage.getType().name());
     override.setUrl(database.getUrl());
-    override.setClusterName(database.getClusterName());
 
     populateFromSecurity(override);
-    override.setIndexPrefix(database.getIndexPrefix());
 
     override.setUsername(database.getUsername());
     override.setPassword(database.getPassword());
