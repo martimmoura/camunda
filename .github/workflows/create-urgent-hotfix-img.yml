@@ -137,22 +137,17 @@ jobs:
             fi
             REF="$COMMIT"
           else
-            # Validate branch or exists - must find the exact reference specified
-            echo "🔍 Looking for reference: $BRANCH"
+            # Validate branch exists - must find the exact branch specified
+            echo "🔍 Looking for branch: $BRANCH"
             
-           if git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+            if git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
               echo "✅ Found remote branch: $BRANCH"
-              REF="origin/$BRANCH"
+              REF="$BRANCH"  # Use just the branch name for checkout
               FULL_SHA=$(git rev-parse "origin/$BRANCH")
             else
-              echo "❌ Error: Branch or tag '$BRANCH' does not exist"
-              echo "🔍 Debug info - Available references:"
-              echo "📋 Remote branches:"
-              git branch -r | head -10
-              echo "📋 Tags:"
-              git tag | tail -10  
-              echo "📋 Local branches:"
-              git branch | head -10
+              echo "❌ Error: Branch '$BRANCH' does not exist"
+              echo "🔍 Available remote branches:"
+              git branch -r | head -20
               exit 1
             fi
           fi
@@ -189,14 +184,15 @@ jobs:
               COMPONENT="${BASH_REMATCH[1]}"
               VERSION="${BASH_REMATCH[2]}"
               
-              # Validate component is supported
+              # Validate component is supported (only components with independent builds)
               case "$COMPONENT" in
-                "camunda"|"operate"|"tasklist"|"optimize"|"zeebe")
+                "camunda"|"optimize")
                   echo "✅ Valid component: $COMPONENT"
                   ;;
                 *)
                   echo "❌ Error: Unsupported component '$COMPONENT'"
-                  echo "❌ Supported components: camunda, operate, tasklist, optimize, zeebe"
+                  echo "❌ Supported components: camunda, optimize"
+                  echo "❌ Note: operate, tasklist, and zeebe are part of the camunda distribution"
                   echo "❌ If you need to add a new component, update both input validation and Maven build configuration"
                   exit 1
                   ;;
@@ -288,13 +284,13 @@ jobs:
           if [[ -f "${COMPONENT}.Dockerfile" ]]; then
             DOCKERFILE="${COMPONENT}.Dockerfile"
             echo "✅ Found component-specific Dockerfile: $DOCKERFILE"
-          elif [[ ("$COMPONENT" == "zeebe" || "$COMPONENT" == "camunda") && -f "Dockerfile" ]]; then
-            # Both zeebe and camunda use the main Dockerfile
+          elif [[ "$COMPONENT" == "camunda" && -f "Dockerfile" ]]; then
+            # Camunda uses the main Dockerfile
             DOCKERFILE="Dockerfile"
             echo "✅ Using main Dockerfile for $COMPONENT: $DOCKERFILE"
           else
             echo "❌ Error: No Dockerfile found for component '$COMPONENT'"
-            echo "❌ Expected: '${COMPONENT}.Dockerfile' or 'Dockerfile' (for zeebe/camunda)"
+            echo "❌ Expected: '${COMPONENT}.Dockerfile' or 'Dockerfile' (for camunda)"
             echo "❌ Available Dockerfiles:"
             ls -la ./*.Dockerfile ./Dockerfile 2>/dev/null || echo "❌ No Dockerfiles found"
             exit 1
@@ -312,29 +308,14 @@ jobs:
           # Each component has specific build requirements based on their Dockerfile expectations
           case "${{ matrix.component }}" in
             "camunda")
-              echo "📦 Building camunda (zeebe) distribution tarball..."
+              echo "📦 Building camunda (includes zeebe, operate, tasklist) distribution tarball..."
               ./mvnw clean package -T1C -DskipTests -DskipChecks -am -pl dist
               echo "✅ Built: dist/target/camunda-zeebe-*.tar.gz"
-              ;;
-            "operate")
-              echo "📦 Building operate distribution tarball..."
-              ./mvnw clean package -T1C -DskipTests -DskipChecks -am -pl operate-distro
-              echo "✅ Built: operate-distro/target/camunda-operate-*-*.tar.gz"
-              ;;
-            "tasklist")
-              echo "📦 Building tasklist distribution tarball..."
-              ./mvnw clean package -T1C -DskipTests -DskipChecks -am -pl tasklist-distro
-              echo "✅ Built: tasklist-distro/target/camunda-tasklist-*-*.tar.gz"
               ;;
             "optimize")
               echo "📦 Building optimize distribution tarball..."
               ./mvnw clean package -T1C -DskipTests -DskipChecks -am -pl optimize-distro
               echo "✅ Built: optimize-distro/target/camunda-optimize-*-*.tar.gz"
-              ;;
-            "zeebe")
-              echo "📦 Building zeebe distribution tarball (same as camunda)..."
-              ./mvnw clean package -T1C -DskipTests -DskipChecks -am -pl dist
-              echo "✅ Built: dist/target/camunda-zeebe-*.tar.gz"
               ;;
             *)
               echo "❌ INTERNAL ERROR: Unknown component '${{ matrix.component }}' reached Maven build step"
@@ -348,27 +329,11 @@ jobs:
         run: |
           echo "🔍 Verifying that required artifacts were built..."
           case "${{ matrix.component }}" in
-            "camunda"|"zeebe")
+            "camunda")
               if ls dist/target/camunda-zeebe-*.tar.gz 1> /dev/null 2>&1; then
-                echo "✅ Found zeebe/camunda distribution: $(ls dist/target/camunda-zeebe-*.tar.gz)"
+                echo "✅ Found camunda distribution: $(ls dist/target/camunda-zeebe-*.tar.gz)"
               else
-                echo "❌ Missing zeebe/camunda distribution tarball in dist/target/"
-                exit 1
-              fi
-              ;;
-            "operate")
-              if ls operate-distro/target/camunda-operate-*-*.tar.gz 1> /dev/null 2>&1; then
-                echo "✅ Found operate distribution: $(ls operate-distro/target/camunda-operate-*-*.tar.gz)"
-              else
-                echo "❌ Missing operate distribution tarball in operate-distro/target/"
-                exit 1
-              fi
-              ;;
-            "tasklist")
-              if ls tasklist-distro/target/camunda-tasklist-*-*.tar.gz 1> /dev/null 2>&1; then
-                echo "✅ Found tasklist distribution: $(ls tasklist-distro/target/camunda-tasklist-*-*.tar.gz)"
-              else
-                echo "❌ Missing tasklist distribution tarball in tasklist-distro/target/"
+                echo "❌ Missing camunda distribution tarball in dist/target/"
                 exit 1
               fi
               ;;
@@ -523,7 +488,7 @@ jobs:
             {
               echo "## ❌ Build Failed"
               echo ""
-              echo "The hotfix image build failed. Please check the logs above for details."
+              echo "The hotfix image build failed. Please check the above for details."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
