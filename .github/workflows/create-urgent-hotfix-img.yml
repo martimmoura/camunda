@@ -204,9 +204,9 @@ jobs:
             fi
           done
           
-          # Generate JSON matrix using jq for proper JSON handling
+          # Generate JSON matrix using jq for proper JSON handling (compact format for GitHub Actions)
           MATRIX_JSON=$(printf '%s\n' "${VALID_COMPONENTS[@]}" | \
-            jq -R -s 'split("\n") | map(select(length > 0)) | map(split(":") | {component: .[0], version: .[1]})')
+            jq -R -s -c 'split("\n") | map(select(length > 0)) | map(split(":") | {component: .[0], version: .[1]})')
           
           echo "Components to build: $COMPONENTS_WITH_VERSIONS"
           echo "Matrix JSON: $MATRIX_JSON"
