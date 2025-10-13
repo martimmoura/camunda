@@ -117,6 +117,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      
+      - name: Fetch all branches and tags
+        run: |
+          git fetch --all --tags --force
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force
 
       - name: Determine reference and SHA
         id: determine-ref
@@ -132,13 +137,24 @@ jobs:
             fi
             REF="$COMMIT"
           else
-            # Validate branch exists
-            if ! git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
-              echo "❌ Error: Branch '$BRANCH' does not exist"
+            # Validate branch or exists - must find the exact reference specified
+            echo "🔍 Looking for reference: $BRANCH"
+            
+           if git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+              echo "✅ Found remote branch: $BRANCH"
+              REF="origin/$BRANCH"
+              FULL_SHA=$(git rev-parse "origin/$BRANCH")
+            else
+              echo "❌ Error: Branch or tag '$BRANCH' does not exist"
+              echo "🔍 Debug info - Available references:"
+              echo "📋 Remote branches:"
+              git branch -r | head -10
+              echo "📋 Tags:"
+              git tag | tail -10  
+              echo "📋 Local branches:"
+              git branch | head -10
               exit 1
             fi
-            REF="origin/$BRANCH"
-            FULL_SHA=$(git rev-parse "origin/$BRANCH")
           fi
           
           SHORT_SHA="${FULL_SHA:0:8}"
