@@ -9,9 +9,10 @@
 # - Input format for components: "component:version,component:version" (e.g., "camunda:8.6.1,operate:8.6.1")
 # - Either branch OR commit must be specified (commit takes precedence)
 # - Support ticket ID is required for proper tagging (e.g. SUPPORT-12345, JIRA-123, ticket-456)
+# - Registry is fixed to: registry.camunda.cloud/hotfixes (not configurable)
 # 
-# The workflow validates inputs, builds the requested images, and pushes them to the hotfix registry following 
-# the Camunda naming convention: registry.camunda.cloud/hotfixes/<image>:<application-version>-<support-issue-id>
+# The workflow validates inputs, builds the requested images, and pushes them to the Camunda hotfix registry following 
+# the naming convention: registry.camunda.cloud/hotfixes/<image>:<application-version>-<support-issue-id>
 # Example: registry.camunda.cloud/hotfixes/camunda:8.6.1-support-12345
 name: Create Urgent Hotfix Images
 
@@ -40,11 +41,6 @@ on:
         description: 'Components to build with versions (e.g. camunda:8.6.1,operate:8.6.1)'
         required: true
         type: string
-      registry:
-        description: 'Target registry for hotfix images'
-        required: false
-        default: 'registry.camunda.cloud/hotfixes'
-        type: string
 
 defaults:
   run:
@@ -53,37 +49,66 @@ defaults:
 env:
   DOCKER_PLATFORMS: "linux/amd64"
   MAVEN_CACHE_KEY: "maven-cache"
+  HOTFIX_REGISTRY: "registry.camunda.cloud/hotfixes"
 
 jobs:
   validate-inputs:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' }}
     name: Validate Inputs
     runs-on: ubuntu-latest
     outputs:
       ref: ${{ steps.determine-ref.outputs.ref }}
       short-sha: ${{ steps.determine-ref.outputs.short-sha }}
       components-matrix: ${{ steps.parse-components.outputs.matrix }}
+      support-ticket-id: ${{ steps.set-defaults.outputs.support-ticket-id }}
+      components-with-versions: ${{ steps.set-defaults.outputs.components_with_versions }}
     steps:
+      - name: Set default values for PR testing
+        id: set-defaults
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "🧪 PR test mode - using default test values"
+            {
+              echo "branch=test-hotfix-workflow-8.7.15"
+              echo "commit="
+              echo "support-ticket-id=TEST-WORKFLOW-12345"
+              echo "components_with_versions=camunda:8.7.15-TEST"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "🚀 Manual dispatch - using provided inputs"
+            {
+              echo "branch=${{ github.event.inputs.branch }}"
+              echo "commit=${{ github.event.inputs.commit }}"
+              echo "support-ticket-id=${{ github.event.inputs.support-ticket-id }}"
+              echo "components_with_versions=${{ github.event.inputs.components_with_versions }}"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Validate inputs
         run: |
-          if [[ -z "${{ github.event.inputs.branch }}" && -z "${{ github.event.inputs.commit }}" ]]; then
+          BRANCH="${{ steps.set-defaults.outputs.branch }}"
+          COMMIT="${{ steps.set-defaults.outputs.commit }}"
+          TICKET_ID="${{ steps.set-defaults.outputs.support-ticket-id }}"
+          COMPONENTS="${{ steps.set-defaults.outputs.components_with_versions }}"
+          
+          if [[ -z "$BRANCH" && -z "$COMMIT" ]]; then
             echo "❌ Error: Either branch or commit must be specified"
             exit 1
           fi
           
-          if [[ -z "${{ github.event.inputs.support-ticket-id }}" ]]; then
+          if [[ -z "$TICKET_ID" ]]; then
             echo "❌ Error: Support ticket ID is required for proper image tagging"
             exit 1
           fi
           
           # Validate ticket ID format (should be alphanumeric with hyphens/underscores)
-          if [[ ! "${{ github.event.inputs.support-ticket-id }}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+          if [[ ! "$TICKET_ID" =~ ^[a-zA-Z0-9_-]+$ ]]; then
             echo "❌ Error: Support ticket ID contains invalid characters. Use only alphanumeric, hyphens, and underscores"
-            echo "❌ Current format: '${{ github.event.inputs.support-ticket-id }}'"
+            echo "❌ Current format: '$TICKET_ID'"
             exit 1
           fi
 
-          if [[ -z "${{ github.event.inputs.components_with_versions }}" ]]; then
+          if [[ -z "$COMPONENTS" ]]; then
               echo "❌ Error: Components with versions input is required"
               exit 1
           fi
@@ -96,21 +121,24 @@ jobs:
       - name: Determine reference and SHA
         id: determine-ref
         run: |
-          if [[ -n "${{ github.event.inputs.commit }}" ]]; then
+          BRANCH="${{ steps.set-defaults.outputs.branch }}"
+          COMMIT="${{ steps.set-defaults.outputs.commit }}"
+          
+          if [[ -n "$COMMIT" ]]; then
             # Validate commit exists and get full SHA (handles both short and full SHAs)
-            if ! FULL_SHA=$(git rev-parse "${{ github.event.inputs.commit }}^{commit}" 2>/dev/null); then
-              echo "❌ Error: Commit '${{ github.event.inputs.commit }}' does not exist"
+            if ! FULL_SHA=$(git rev-parse "$COMMIT^{commit}" 2>/dev/null); then
+              echo "❌ Error: Commit '$COMMIT' does not exist"
               exit 1
             fi
-            REF="${{ github.event.inputs.commit }}"
+            REF="$COMMIT"
           else
             # Validate branch exists
-            if ! git show-ref --verify --quiet "refs/remotes/origin/${{ github.event.inputs.branch }}"; then
-              echo "❌ Error: Branch '${{ github.event.inputs.branch }}' does not exist"
+            if ! git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+              echo "❌ Error: Branch '$BRANCH' does not exist"
               exit 1
             fi
-            REF="origin/${{ github.event.inputs.branch }}"
-            FULL_SHA=$(git rev-parse "origin/${{ github.event.inputs.branch }}")
+            REF="origin/$BRANCH"
+            FULL_SHA=$(git rev-parse "origin/$BRANCH")
           fi
           
           SHORT_SHA="${FULL_SHA:0:8}"
@@ -125,7 +153,7 @@ jobs:
       - name: Parse components
         id: parse-components
         run: |
-          COMPONENTS_WITH_VERSIONS="${{ github.event.inputs.components_with_versions }}"
+          COMPONENTS_WITH_VERSIONS="${{ steps.set-defaults.outputs.components_with_versions }}"
           
           echo "Raw input: $COMPONENTS_WITH_VERSIONS"
           
@@ -353,10 +381,10 @@ jobs:
       - name: Generate image tags
         id: image-tags
         run: |
-          REGISTRY="${{ github.event.inputs.registry }}"
+          REGISTRY="${{ env.HOTFIX_REGISTRY }}"
           COMPONENT="${{ matrix.component }}"
           VERSION="${{ matrix.version }}"
-          TICKET_ID="${{ github.event.inputs.support-ticket-id }}"
+          TICKET_ID="${{ needs.validate-inputs.outputs.support-ticket-id }}"
           SHORT_SHA="${{ needs.validate-inputs.outputs.short-sha }}"
           
           # Validate that ticket ID is safe for Docker tagging (already validated earlier)
@@ -398,11 +426,11 @@ jobs:
             ${{ steps.image-tags.outputs.sha-tag }}
           labels: |
             org.opencontainers.image.title=Camunda ${{ matrix.component }} ${{ matrix.version }} Hotfix
-            org.opencontainers.image.description=Hotfix image for ${{ matrix.component }} ${{ matrix.version }} - Ticket: ${{ github.event.inputs.support-ticket-id }}
+            org.opencontainers.image.description=Hotfix image for ${{ matrix.component }} ${{ matrix.version }} - Ticket: ${{ needs.validate-inputs.outputs.support-ticket-id }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ needs.validate-inputs.outputs.ref }}
             org.opencontainers.image.version=${{ matrix.version }}
-            camunda.hotfix.ticket-id=${{ github.event.inputs.support-ticket-id }}
+            camunda.hotfix.ticket-id=${{ needs.validate-inputs.outputs.support-ticket-id }}
             camunda.hotfix.component=${{ matrix.component }}
             camunda.hotfix.version=${{ matrix.version }}
             camunda.hotfix.sha=${{ needs.validate-inputs.outputs.short-sha }}
@@ -414,7 +442,7 @@ jobs:
           echo "🎉 Successfully built and pushed hotfix image for ${{ matrix.component }} ${{ matrix.version }}"
           echo "📦 Primary image: ${{ steps.image-tags.outputs.primary-tag }}"
           echo "📦 SHA image: ${{ steps.image-tags.outputs.sha-tag }}"
-          echo "🎫 Ticket: ${{ github.event.inputs.support-ticket-id }}"
+          echo "🎫 Ticket: ${{ needs.validate-inputs.outputs.support-ticket-id }}"
           echo "📝 SHA: ${{ needs.validate-inputs.outputs.short-sha }}"
 
   summary:
@@ -428,7 +456,7 @@ jobs:
           {
             echo "# 🔥 Urgent Hotfix Images Build Summary"
             echo ""
-            echo "**Support Ticket:** \`${{ github.event.inputs.support-ticket-id }}\`"
+            echo "**Support Ticket:** \`${{ needs.validate-inputs.outputs.support-ticket-id }}\`"
             echo "**Reference:** \`${{ needs.validate-inputs.outputs.ref }}\`"  
             echo "**SHA:** \`${{ needs.validate-inputs.outputs.short-sha }}\`"
             echo ""
@@ -442,9 +470,9 @@ jobs:
               echo ""
             } >> "$GITHUB_STEP_SUMMARY"
             
-            COMPONENTS_WITH_VERSIONS="${{ github.event.inputs.components_with_versions }}"
+            COMPONENTS_WITH_VERSIONS="${{ needs.validate-inputs.outputs.components-with-versions }}"
             
-            TICKET_LOWER=$(echo "${{ github.event.inputs.support-ticket-id }}" | tr '[:upper:]' '[:lower:]')
+            TICKET_LOWER=$(echo "${{ needs.validate-inputs.outputs.support-ticket-id }}" | tr '[:upper:]' '[:lower:]')
             
             IFS=',' read -ra COMP_ARRAY <<< "$COMPONENTS_WITH_VERSIONS"
             for COMPONENT_WITH_VERSION in "${COMP_ARRAY[@]}"; do
@@ -453,8 +481,8 @@ jobs:
                 COMP="${BASH_REMATCH[1]}"
                 VERSION="${BASH_REMATCH[2]}"
                 {
-                  echo "- **Primary**: \`${{ github.event.inputs.registry }}/${COMP}:${VERSION}-${TICKET_LOWER}\`"
-                  echo "- **With SHA**: \`${{ github.event.inputs.registry }}/${COMP}:${VERSION}-${TICKET_LOWER}-${{ needs.validate-inputs.outputs.short-sha }}\`"
+                  echo "- **Primary**: \`${{ env.HOTFIX_REGISTRY }}/${COMP}:${VERSION}-${TICKET_LOWER}\`"
+                  echo "- **With SHA**: \`${{ env.HOTFIX_REGISTRY }}/${COMP}:${VERSION}-${TICKET_LOWER}-${{ needs.validate-inputs.outputs.short-sha }}\`"
                   echo ""
                 } >> "$GITHUB_STEP_SUMMARY"
               fi
@@ -466,13 +494,13 @@ jobs:
               echo ""
               echo "\`\`\`bash"
               echo "# Pull the hotfix image (primary tag)"
-              echo "docker pull ${{ github.event.inputs.registry }}/[COMPONENT]:[VERSION]-$(echo '${{ github.event.inputs.support-ticket-id }}' | tr '[:upper:]' '[:lower:]')"
+              echo "docker pull ${{ env.HOTFIX_REGISTRY }}/[COMPONENT]:[VERSION]-$(echo '${{ needs.validate-inputs.outputs.support-ticket-id }}' | tr '[:upper:]' '[:lower:]')"
               echo ""
               echo "# Example for Camunda 8.6.1 with ticket SUPPORT-12345:"
-              echo "docker pull ${{ github.event.inputs.registry }}/camunda:8.6.1-support-12345"
+              echo "docker pull ${{ env.HOTFIX_REGISTRY }}/camunda:8.6.1-support-12345"
               echo ""
               echo "# Or use the SHA tag for exact reproducibility:"
-              echo "docker pull ${{ github.event.inputs.registry }}/camunda:8.6.1-support-12345-${{ needs.validate-inputs.outputs.short-sha }}"
+              echo "docker pull ${{ env.HOTFIX_REGISTRY }}/camunda:8.6.1-support-12345-${{ needs.validate-inputs.outputs.short-sha }}"
               echo "\`\`\`"
             } >> "$GITHUB_STEP_SUMMARY"
           else
