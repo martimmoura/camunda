@@ -292,7 +292,7 @@ public final class SearchQueryRequestMapper {
             SearchQuerySortRequestMapper.fromTenantGroupSearchQuerySortRequest(request.getSort()),
             SortOptionBuilders::tenantMember,
             SearchQuerySortRequestMapper::applyTenantGroupSortField);
-    final var filter = FilterBuilders.tenant().build();
+    final var filter = FilterBuilders.tenantMember().build();
     return buildSearchQuery(filter, sort, page, SearchQueryBuilders::tenantMemberSearchQuery);
   }
 
@@ -307,7 +307,7 @@ public final class SearchQueryRequestMapper {
             SearchQuerySortRequestMapper.fromTenantUserSearchQuerySortRequest(request.getSort()),
             SortOptionBuilders::tenantMember,
             SearchQuerySortRequestMapper::applyTenantUserSortField);
-    final var filter = FilterBuilders.tenant().build();
+    final var filter = FilterBuilders.tenantMember().build();
     return buildSearchQuery(filter, sort, page, SearchQueryBuilders::tenantMemberSearchQuery);
   }
 
@@ -322,7 +322,7 @@ public final class SearchQueryRequestMapper {
             SearchQuerySortRequestMapper.fromTenantClientSearchQuerySortRequest(request.getSort()),
             SortOptionBuilders::tenantMember,
             SearchQuerySortRequestMapper::applyTenantClientSortField);
-    final var filter = FilterBuilders.tenant().build();
+    final var filter = FilterBuilders.tenantMember().build();
     return buildSearchQuery(filter, sort, page, SearchQueryBuilders::tenantMemberSearchQuery);
   }
 
