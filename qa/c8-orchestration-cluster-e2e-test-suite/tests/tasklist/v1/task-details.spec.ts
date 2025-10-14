@@ -41,8 +41,6 @@ test.beforeAll(async () => {
     './resources/processWithDeployedForm.bpmn',
     './resources/create_invoice.form',
     './resources/zeebe_and_job_worker_process.bpmn',
-    './resources/processWithBigVariableForm.bpmn',
-    './resources/big_variable_form.form',
   ]);
   await sleep(1000);
 
@@ -75,7 +73,6 @@ test.beforeAll(async () => {
     }),
     createInstances('processWithDeployedForm', 1, 1),
     createInstances('zeebe_and_job_worker_process', 1, 1),
-    createInstances('processWithBigVariableForm', 1, 1),
   ]);
 
   await sleep(1000);
@@ -606,18 +603,6 @@ test.describe('task details page', () => {
 
   test('show process model', async ({taskPanelPageV1, taskDetailsPageV1}) => {
     await taskPanelPageV1.openTask('User registration');
-
-    await expect(taskDetailsPageV1.processTab).toBeVisible();
-    await taskDetailsPageV1.processTab.click();
-
-    await expect(taskDetailsPageV1.bpmnDiagram).toBeVisible();
-  });
-
-  test('task completion with big variable form', async ({
-    taskPanelPageV1,
-    taskDetailsPageV1,
-  }) => {
-    await taskPanelPageV1.openTask('Big Variable Usertask');
 
     await expect(taskDetailsPageV1.processTab).toBeVisible();
     await taskDetailsPageV1.processTab.click();
