@@ -66,13 +66,13 @@ const normalProjects = [
           ], // V1: Run only V1-specific tests
     testIgnore: isV2ModeEnabled
       ? [
-          'tests/tasklist/task-panel.spec.ts', // Handled by chromium-subset
+          'tests/tasklist/task-panel.spec.ts', // V2: Exclude V2 task-panel (handled by subset)
           'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
-          'tests/tasklist/v1/**', // Exclude V1 Tasklist directory in V2 mode
-          'tests/common-flows/v1/**', // Exclude V1 common flows directory in V2 mode
+          'tests/tasklist/v1/**', // V2: Exclude all V1 tests
+          'tests/common-flows/v1/**', // V2: Exclude V1 common flows
         ]
       : [
-          'tests/tasklist/task-panel.spec.ts', // Handled by chromium-subset in V1 mode
+          'tests/tasklist/v1/task-panel.spec.ts', // V1: Exclude V1 task-panel (handled by subset)
           'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
         ],
     teardown: 'chromium-subset',
@@ -88,21 +88,23 @@ const normalProjects = [
   {
     name: 'firefox',
     use: devices['Desktop Firefox'],
-    testMatch: isV2ModeEnabled
-      ? ['tests/**/*.spec.ts'] // V2: Run all tests
-      : [
-          'tests/tasklist/v1/**/*.spec.ts',
-          'tests/common-flows/v1/**/*.spec.ts',
-        ], // V1: Run only V1-specific tests
+    testMatch: changedFolders.includes('firefox')
+      ? changedFolders.map((folder) => `**/${folder}/*.spec.ts`)
+      : isV2ModeEnabled
+        ? ['tests/**/*.spec.ts'] // V2: Run all tests
+        : [
+            'tests/tasklist/v1/**/*.spec.ts',
+            'tests/common-flows/v1/**/*.spec.ts',
+          ], // V1: Run only V1-specific tests
     testIgnore: isV2ModeEnabled
       ? [
-          'tests/tasklist/task-panel.spec.ts', // Handled by firefox-subset
+          'tests/tasklist/task-panel.spec.ts', // V2: Exclude V2 task-panel (handled by subset)
           'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
           'tests/tasklist/v1/**',
           'tests/common-flows/v1/**',
         ]
       : [
-          'tests/tasklist/task-panel.spec.ts', // Handled by firefox-subset in V1 mode
+          'tests/tasklist/v1/task-panel.spec.ts', // V1: Exclude V1 task-panel (handled by subset)
           'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
         ],
     teardown: 'firefox-subset',
@@ -118,21 +120,23 @@ const normalProjects = [
   {
     name: 'msedge',
     use: devices['Desktop Edge'],
-    testMatch: isV2ModeEnabled
-      ? ['tests/**/*.spec.ts'] // V2: Run all tests
-      : [
-          'tests/tasklist/v1/**/*.spec.ts',
-          'tests/common-flows/v1/**/*.spec.ts',
-        ], // V1: Run only V1-specific tests
+    testMatch: changedFolders.includes('msedge')
+      ? changedFolders.map((folder) => `**/${folder}/*.spec.ts`)
+      : isV2ModeEnabled
+        ? ['tests/**/*.spec.ts'] // V2: Run all tests
+        : [
+            'tests/tasklist/v1/**/*.spec.ts',
+            'tests/common-flows/v1/**/*.spec.ts',
+          ], // V1: Run only V1-specific tests
     testIgnore: isV2ModeEnabled
       ? [
-          'tests/tasklist/task-panel.spec.ts', // Handled by msedge-subset
+          'tests/tasklist/task-panel.spec.ts', // V2: Exclude V2 task-panel (handled by subset)
           'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
           'tests/tasklist/v1/**',
           'tests/common-flows/v1/**',
         ]
       : [
-          'tests/tasklist/task-panel.spec.ts', // Handled by msedge-subset in V1 mode
+          'tests/tasklist/v1/task-panel.spec.ts', // V1: Exclude V1 task-panel (handled by subset)
           'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
         ],
     teardown: 'msedge-subset',
