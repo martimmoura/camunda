@@ -31,7 +31,8 @@ jobs:
       actions: read
       contents: read
     # Investigation for inc-3618-fossa-analysis-step-regularly-cancelled
-    runs-on: ubuntu-latest
+    runs-on: gcp-core-8-longrunning
+    # runs-on: ubuntu-latest
     # If you change the job timeout, update the timeout in camunda/infra-global-github-actions/fossa/pr-check accordingly.
     timeout-minutes: 21
     strategy:
@@ -51,6 +52,7 @@ jobs:
             -Dquickly=true
             -DskipQaBuild=true
     steps:
+    - uses: camunda/infra-global-github-actions/setup-gh-cli@b836497e0f0c0343feb0a7f53a8cbd8ac69fbd25
     - uses: actions/checkout@v4
 
     # Import FOSSA_API_KEY secret from Vault
