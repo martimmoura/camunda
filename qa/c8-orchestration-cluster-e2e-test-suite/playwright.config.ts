@@ -58,55 +58,111 @@ const normalProjects = [
     use: devices['Desktop Chrome'],
     testMatch: changedFolders.includes('chromium')
       ? changedFolders.map((folder) => `**/${folder}/*.spec.ts`)
-      : ['tests/**/*.spec.ts'],
-    testIgnore: ['tests/tasklist/task-panel.spec.ts', 'v2-stateless-tests/**'],
+      : isV2ModeEnabled
+        ? ['tests/**/*.spec.ts'] // V2: Run all tests
+        : [
+            'tests/tasklist/v1/**/*.spec.ts',
+            'tests/common-flows/v1/**/*.spec.ts',
+          ], // V1: Run only V1-specific tests
+    testIgnore: isV2ModeEnabled
+      ? [
+          'tests/tasklist/task-panel.spec.ts', // Handled by chromium-subset
+          'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
+          'tests/tasklist/v1/**', // Exclude V1 Tasklist directory in V2 mode
+          'tests/common-flows/v1/**', // Exclude V1 common flows directory in V2 mode
+        ]
+      : [
+          'tests/tasklist/task-panel.spec.ts', // Handled by chromium-subset in V1 mode
+          'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
+        ],
     teardown: 'chromium-subset',
   },
   {
     name: 'chromium-subset',
-    testMatch: 'tests/tasklist/task-panel.spec.ts',
+    testMatch: isV2ModeEnabled
+      ? 'tests/tasklist/task-panel.spec.ts' // V2 version
+      : 'tests/tasklist/v1/task-panel.spec.ts', // V1 version
     use: devices['Desktop Chrome'],
-    testIgnore: 'v2-stateless-tests/**',
+    testIgnore: 'v2-stateless-tests/**', // Always excluded
   },
   {
     name: 'firefox',
     use: devices['Desktop Firefox'],
-    testIgnore: ['tests/tasklist/task-panel.spec.ts', 'v2-stateless-tests/**'],
+    testMatch: isV2ModeEnabled
+      ? ['tests/**/*.spec.ts'] // V2: Run all tests
+      : [
+          'tests/tasklist/v1/**/*.spec.ts',
+          'tests/common-flows/v1/**/*.spec.ts',
+        ], // V1: Run only V1-specific tests
+    testIgnore: isV2ModeEnabled
+      ? [
+          'tests/tasklist/task-panel.spec.ts', // Handled by firefox-subset
+          'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
+          'tests/tasklist/v1/**',
+          'tests/common-flows/v1/**',
+        ]
+      : [
+          'tests/tasklist/task-panel.spec.ts', // Handled by firefox-subset in V1 mode
+          'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
+        ],
     teardown: 'firefox-subset',
   },
   {
     name: 'firefox-subset',
-    testMatch: 'tests/tasklist/task-panel.spec.ts',
+    testMatch: isV2ModeEnabled
+      ? 'tests/tasklist/task-panel.spec.ts' // V2 version
+      : 'tests/tasklist/v1/task-panel.spec.ts', // V1 version
     use: devices['Desktop Firefox'],
-    testIgnore: 'v2-stateless-tests/**',
+    testIgnore: 'v2-stateless-tests/**', // Always excluded
   },
   {
     name: 'msedge',
     use: devices['Desktop Edge'],
-    testIgnore: ['tests/tasklist/task-panel.spec.ts', 'v2-stateless-tests/**'],
+    testMatch: isV2ModeEnabled
+      ? ['tests/**/*.spec.ts'] // V2: Run all tests
+      : [
+          'tests/tasklist/v1/**/*.spec.ts',
+          'tests/common-flows/v1/**/*.spec.ts',
+        ], // V1: Run only V1-specific tests
+    testIgnore: isV2ModeEnabled
+      ? [
+          'tests/tasklist/task-panel.spec.ts', // Handled by msedge-subset
+          'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
+          'tests/tasklist/v1/**',
+          'tests/common-flows/v1/**',
+        ]
+      : [
+          'tests/tasklist/task-panel.spec.ts', // Handled by msedge-subset in V1 mode
+          'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
+        ],
     teardown: 'msedge-subset',
   },
   {
     name: 'msedge-subset',
-    testMatch: 'tests/tasklist/task-panel.spec.ts',
+    testMatch: isV2ModeEnabled
+      ? 'tests/tasklist/task-panel.spec.ts' // V2 version
+      : 'tests/tasklist/v1/task-panel.spec.ts', // V1 version
     use: devices['Desktop Edge'],
-    testIgnore: 'v2-stateless-tests/**',
+    testIgnore: 'v2-stateless-tests/**', // Always excluded
   },
   {
     name: 'tasklist-v1-e2e',
-    testMatch: ['tests/tasklist/v1/*.spec.ts'],
+    testMatch: [
+      'tests/tasklist/v1/*.spec.ts',
+      'tests/common-flows/v1/*.spec.ts',
+    ],
     use: devices['Desktop Edge'],
-    testIgnore: ['tests/tasklist/task-panel.spec.ts', 'v2-stateless-tests/**'],
+    testIgnore: ['v2-stateless-tests/**'], // Always excluded
     teardown: 'chromium-subset',
   },
   {
     name: 'tasklist-v2-e2e',
-    testMatch: ['tests/tasklist/*.spec.ts'],
+    testMatch: ['tests/tasklist/*.spec.ts', 'tests/common-flows/*.spec.ts'],
     use: devices['Desktop Edge'],
     testIgnore: [
-      'tests/tasklist/task-panel.spec.ts',
-      'tests/tasklist/v1/*.spec.ts',
-      'v2-stateless-tests/**',
+      'tests/tasklist/v1/**', // Exclude V1 Tasklist tests
+      'tests/common-flows/v1/**', // Exclude V1 common flows
+      'v2-stateless-tests/**', // Always excluded - runs in dedicated projects
     ],
     teardown: 'chromium-subset',
   },
@@ -114,7 +170,7 @@ const normalProjects = [
     name: 'identity-e2e',
     testMatch: ['tests/identity/*.spec.ts'],
     use: devices['Desktop Chrome'],
-    testIgnore: 'v2-stateless-tests/**',
+    testIgnore: 'v2-stateless-tests/**', // Always excluded
   },
 ];
 
