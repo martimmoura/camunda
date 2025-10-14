@@ -581,6 +581,12 @@ public class BrokerBasedPropertiesOverride {
 
     setArg(
         args, "history.processInstanceEnabled", database.getHistory().isProcessInstanceEnabled());
+
+    setArg(args, "postExport.batchSize", database.getPostExport().getBatchSize());
+    setArg(args, "postExport.delayBetweenRuns", database.getPostExport().getDelayBetweenRuns());
+    setArg(
+        args, "postExport.maxDelayBetweenRuns", database.getPostExport().getMaxDelayBetweenRuns());
+    setArg(args, "postExport.ignoreMissingData", database.getPostExport().isIgnoreMissingData());
   }
 
   private void populateRdbmsExporter(final BrokerBasedProperties override) {
